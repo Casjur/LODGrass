@@ -1,22 +1,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
-public static class LODTileTreeGenerator
+public static class LODQuadTreeGenerator
 {
-
-    public QuadTree<LODTile> GenerateLODTileTree(string folderPath, Terrain canvas, float pixelsPerMeter, double maxTreeSize)
+    public static QuadTree<LODTile> GenerateLODQuadTree(string folderPath, Terrain canvas, float pixelsPerMeter, double maxTreeSize)
     {
         int w_pixels = 1;
         int h_pixels = 1;
         float w_minTileSize = 1;
         float h_minTileSize = 1;
 
-        GenerateLODTileTree(folderPath, canvas, w_minTileSize, h_minTileSize, w_pixels, h_pixels, maxTreeSize);
+        return GenerateLODQuadTree(folderPath, canvas, w_minTileSize, h_minTileSize, w_pixels, h_pixels, maxTreeSize);
     }
 
-    public QuadTree<LODTile> GenerateLODTileTree(string folderPath, Terrain canvas, float w_minTileSize, float h_minTileSize, int w_pixels, int h_pixels, double maxStoredPixels)
+    public static LODQuadTree<LODTile> GenerateLODQuadTree(string folderPath, Terrain canvas, float w_minTileSize, float h_minTileSize, int w_pixels, int h_pixels, double maxStoredPixels)
     {
         float w_canvasSize = canvas.terrainData.size.x;
         float h_canvasSize = canvas.terrainData.size.z;
@@ -26,8 +26,9 @@ public static class LODTileTreeGenerator
         if (isTooLarge)
             throw new Exception("Resulting Tile Tree will be too large!");
 
-        QuadTree<LODTile> tree = new QuadTree<LODTile>();
+        LODQuadTree<LODTile> tree = new LODQuadTree<LODTile>(folderPath);
 
+        return tree;
     }
 
     /// <summary>
@@ -68,7 +69,24 @@ public static class LODTileTreeGenerator
     }
 }
 
-struct BaseTileData
-{
 
+
+public class LODQuadTree<T> : QuadTree<T> where T : class
+{
+    public string FolderPath { get; private set; }
+
+    public LODQuadTree(string folderPath) : base()
+    {
+        if (SetupFolder(folderPath))
+            this.FolderPath = folderPath;
+    }
+
+    private bool SetupFolder(string folderPath)
+    {
+        DirectoryInfo folder = Directory.CreateDirectory(folderPath);
+        if (folder == null)
+            return false;
+
+        return true;
+    }
 }
