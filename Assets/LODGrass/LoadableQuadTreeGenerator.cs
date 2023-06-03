@@ -80,7 +80,7 @@ public static class LoadableQuadTreeGenerator<T> where T : class
 
         // Calculate total number of tiles
         int noTotalTiles = noSmallTiles;
-        while(noSmallTiles > 4)
+        while (noSmallTiles > 4)
         {
             noSmallTiles = (int)Math.Ceiling((double)(noSmallTiles / 4));
             noTotalTiles += noSmallTiles;
