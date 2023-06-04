@@ -6,30 +6,30 @@ using UnityEngine;
 
 public static class LoadableQuadTreeGenerator<T> where T : class
 {
-    public static QuadTree<LODTile> GenerateLoadableQuadTree(string folderPath, Terrain canvas, float pixelsPerMeter, double maxTreeSize)
-    {
-        int w_pixels = 1;
-        int h_pixels = 1;
-        float w_minTileSize = 1;
-        float h_minTileSize = 1;
+    //public static QuadTree<LODTile> GenerateLoadableQuadTree(string folderPath, Terrain canvas, float pixelsPerMeter, double maxTreeSize)
+    //{
+    //    int w_pixels = 1;
+    //    int h_pixels = 1;
+    //    float w_minTileSize = 1;
+    //    float h_minTileSize = 1;
 
-        return GenerateLoadableQuadTree(folderPath, canvas, w_minTileSize, h_minTileSize, w_pixels, h_pixels, maxTreeSize);
-    }
+    //    return GenerateLoadableQuadTree(folderPath, canvas, w_minTileSize, h_minTileSize, w_pixels, h_pixels, maxTreeSize);
+    //}
 
-    public static LoadableQuadTree<LODTile> GenerateLoadableQuadTree(string folderPath, Terrain canvas, float w_minTileSize, float h_minTileSize, int w_pixels, int h_pixels, double maxStoredPixels)
-    {
-        float w_canvasSize = canvas.terrainData.size.x;
-        float h_canvasSize = canvas.terrainData.size.z;
+    //public static LoadableQuadTree<LODTile> GenerateLoadableQuadTree(string folderPath, Terrain canvas, float w_minTileSize, float h_minTileSize, int w_pixels, int h_pixels, double maxStoredPixels)
+    //{
+    //    float w_canvasSize = canvas.terrainData.size.x;
+    //    float h_canvasSize = canvas.terrainData.size.z;
 
-        // Safeguard to avoid absurd memory/diskspace usage
-        bool isTooLarge = IsTreeMemoryTooLarge(maxStoredPixels, w_canvasSize, h_canvasSize, w_minTileSize, h_minTileSize, w_pixels, h_pixels);
-        if (isTooLarge)
-            throw new Exception("Resulting Tile Tree will be too large!");
+    //    // Safeguard to avoid absurd memory/diskspace usage
+    //    bool isTooLarge = IsTreeMemoryTooLarge(maxStoredPixels, w_canvasSize, h_canvasSize, w_minTileSize, h_minTileSize, w_pixels, h_pixels);
+    //    if (isTooLarge)
+    //        throw new Exception("Resulting Tile Tree will be too large!");
 
-        LoadableQuadTree<LODTile> tree = new LoadableQuadTree<LODTile>(folderPath);
+    //    LoadableQuadTree<LODTile> tree = new LoadableQuadTree<LODTile>(folderPath, position, size);
 
-        return tree;
-    }
+    //    return tree;
+    //}
 
     /// <summary>
     /// 
@@ -42,6 +42,8 @@ public static class LoadableQuadTreeGenerator<T> where T : class
     /// <returns></returns>
     public static LoadableQuadTree<T> GenerateLoadableQuadTree(string folderPath, Terrain canvas, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels)
     {
+        Vector3 position = canvas.transform.position;
+
         float w_canvas = canvas.terrainData.size.x;
         float h_canvas = canvas.terrainData.size.z;
 
@@ -53,12 +55,14 @@ public static class LoadableQuadTreeGenerator<T> where T : class
 
         float w_smallTile = detailMapPixelWidth / w_detailMap;
 
+        float w_rootSize = Mathf.Pow(2, noLayers) * w_smallTile;
+
         // Safeguard to avoid absurd memory/diskspace usage
         bool isTooLarge = IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
         if (isTooLarge)
             throw new Exception("Resulting Tile Tree will be too large!");
 
-        LoadableQuadTree<T> tree = new LoadableQuadTree<T>(folderPath);
+        LoadableQuadTree<T> tree = new LoadableQuadTree<T>(folderPath, position, w_rootSize);
 
         return tree;
     }
@@ -92,6 +96,8 @@ public static class LoadableQuadTreeGenerator<T> where T : class
         // Total number of pixels
         double noTotalPixels = noTotalTiles * w_pixels * h_pixels;
 
+        Debug.Log("Total Pixels: " + noTotalPixels);
+
         return noTotalPixels > maxSize;
     }
 }
@@ -102,7 +108,7 @@ public class LoadableQuadTree<T> : QuadTree<T> where T : class
 {
     public string FolderPath { get; private set; }
 
-    public LoadableQuadTree(string folderPath) : base()
+    public LoadableQuadTree(string folderPath, Vector3 position, float size) : base(position, size)
     {
         if (SetupFolder(folderPath))
             this.FolderPath = folderPath;
@@ -116,4 +122,75 @@ public class LoadableQuadTree<T> : QuadTree<T> where T : class
 
         return true;
     }
+
+    public void Insert()
+    {
+
+    }
 }
+
+public abstract class LoadableQuadTreeNode<U> : QuadTreeNode<LoadableDataContainer<U>> where U : struct
+{
+    public  LoadableDataContainer<U> DataContainer { get; protected set; }
+
+    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, QuadTreeNode<LoadableDataContainer<U>> parent = null) : base(position, size, parent)
+    {
+        
+    }
+
+    
+
+    public virtual void UnloadData()
+    {
+        this.DataContainer.UnloadData();
+    }
+
+}
+
+
+public abstract class LoadableDataContainer<U> where U : struct
+{
+    public string FileName { get; private set; }
+    public bool IsLoaded { get; private set; }
+    public U? Data { get; private set; }
+
+    public LoadableDataContainer(U? data = null)
+    {
+        this.Data = data;
+    }
+
+    public virtual void UnloadData()
+    {
+        this.Data = null;
+        Resources.UnloadUnusedAssets();
+    }
+
+    public abstract void SaveData(string fullFilePath);
+
+    public abstract IEnumerator LoadDataCoroutine(string fullFilePath);
+
+    /// <summary>
+    /// Loads all data the Tile is supposed to store.
+    /// !Note: Can only be called from a monoscript class!
+    /// </summary>
+    //public IEnumerator LoadDataCoroutine(string path)
+    //{
+    //    ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
+
+    //    yield return request;
+
+    //    if (request.asset != null && request.asset is Texture2D)
+    //    {
+    //        Texture2D texture = (Texture2D)request.asset;
+
+    //        // Create the struct with the loaded Texture2D
+    //        this.Data = new GrassTileData
+    //        {
+    //            exampleTexture = texture
+    //        };
+
+    //        this.IsLoaded = true;
+    //    }
+    //}
+}
+

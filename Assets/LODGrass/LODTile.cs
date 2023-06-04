@@ -5,8 +5,28 @@ using UnityEngine;
 
 public class LODTile
 {
+    // Indicies of possible quadrant positions
+    public enum QuadNodePosition { TopLeft = 0, TopRight = 1, BottomLeft = 2, BottomRight = 3 };
+
+    // Position relative to the TopLeft origin point of the parent tile
+    public static readonly Vector3[] RelativePositions = {
+        Vector3.zero,
+        Right,
+        Bottom,
+        Bottom + Right
+    };
+
+    public static readonly Vector3 Top = new Vector3(0, 0, 1);
+    public static readonly Vector3 Bottom = new Vector3(0, 0, -1);
+    public static readonly Vector3 Left = new Vector3(-1, 0, 0);
+    public static readonly Vector3 Right = new Vector3(1, 0, 0);
+
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
+
+    public LODTile(QuadNodePosition relativePosition, float size) 
+        : this(LODTile.RelativePositions[(int)relativePosition] * size, size) 
+    { }
 
     public LODTile(Vector3 position, float size)
     {
@@ -16,7 +36,17 @@ public class LODTile
             );
     }
 
-    public bool isPointInTile(Vector3 v)
+    public Vector3 GetPosition()
+    {
+        return new Vector3(this.Tile.x, 0, this.Tile.y);
+    }
+
+    public float GetSize()
+    {
+        return this.Tile.size.x;
+    }
+
+    public bool IsPointInTile(Vector3 v)
     {
         Vector2 v2D = new Vector2(v.x, v.z);
         return this.Tile.Contains(v2D);
@@ -50,58 +80,23 @@ public class LODTile
     }
 }
 
-public class GrassLODTile : LODTile
-{
-    public string FileName { get; private set; }
-    public bool IsLoaded { get; private set; }
-    public GrassTileData? Data { get; private set; } = null;
+//public class GrassLODTile : LODTile
+//{
+    
+//    public GrassTileData? Data { get; private set; } = null;
 
-    // Example of a texture name suffix
-    public static string exampleNaming = "_h";
+//    // Example of a texture name suffix
+//    public static string exampleNaming = "_h";
 
-    public GrassLODTile(Vector3 position, float size, string fileName) : base(position, size)
-    {
-        this.FileName = fileName;
-    }
+//    public GrassLODTile(Vector3 position, float size, string fileName) : base(position, size)
+//    {
+//        this.FileName = fileName;
+//    }
 
-    public void SaveData()
-    {
+    
 
-    }
-
-    /// <summary>
-    /// Loads all data the Tile is supposed to store.
-    /// !Note: Can only be called from a monoscript class!
-    /// </summary>
-    public IEnumerator LoadDataCoroutine(string path)
-    {
-        ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
-
-        yield return request;
-
-        if (request.asset != null && request.asset is Texture2D)
-        {
-            Texture2D texture = (Texture2D)request.asset;
-
-            // Create the struct with the loaded Texture2D
-            this.Data = new GrassTileData
-            {
-                exampleTexture = texture
-            };
-
-            this.IsLoaded = true;
-        }
-    }
-
-    public void UnloadData()
-    {
-        //Texture2D bla = new Texture2D(1, 1);
-        //MonoBehaviour.Destroy(bla);
-        
-        this.Data = null;
-        Resources.UnloadUnusedAssets();
-    }
-}
+    
+//}
 
 public struct GrassTileData
 {
