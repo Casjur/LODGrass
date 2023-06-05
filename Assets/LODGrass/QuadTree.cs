@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class QuadTree<T> where T : class
+public class QuadTree<T> where T : class // T = node content
 {
     public QuadTreeNode<T> Root { get; protected set; }
 
@@ -23,16 +23,16 @@ public class QuadTree<T> where T : class
 
 public class QuadTreeNode<T> where T : class
 {
-    public QuadTreeNode<T> Parent { get; private set; }
+    public QuadTreeNode<T> Parent { get; protected set; }
 
-    public QuadTreeNode<T> BottomRight { get; private set; }
-    public QuadTreeNode<T> BottomLeft { get; private set; }
-    public QuadTreeNode<T> TopRight { get; private set; }
-    public QuadTreeNode<T> TopLeft { get; private set; }
+    public QuadTreeNode<T> BottomRight { get; protected set; }
+    public QuadTreeNode<T> BottomLeft { get; protected set; }
+    public QuadTreeNode<T> TopRight { get; protected set; }
+    public QuadTreeNode<T> TopLeft { get; protected set; }
 
     public LODTile Tile { get; set; }
 
-    public T Content { get; private set; }
+    public T Content { get; protected set; }
 
     public QuadTreeNode(LODTile.QuadNodePosition relativePosition, float size, QuadTreeNode<T> parent)
     {
@@ -45,6 +45,8 @@ public class QuadTreeNode<T> where T : class
         this.Parent = parent;
         this.Tile = new LODTile(position, size);
     }
+
+    
 
     public void GenerateBottomRight()
     {

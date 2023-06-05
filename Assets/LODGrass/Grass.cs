@@ -47,6 +47,11 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassQuadTreeNode>
         throw new InvalidOperationException("GrassQuadTree requires a fileName to create the root node.");
     }
 
+    protected override void GenerateRoot(Vector3 position, float size, string fileName)
+    {
+        this.Root = new GrassQuadTreeNode(position, size, fileName);
+    }
+
     protected override GrassQuadTreeNode CreateRootNode(Vector3 position, float size, string fileName)
     {
         GrassQuadTreeNode node = new GrassQuadTreeNode(position, size, fileName);
@@ -54,16 +59,21 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassQuadTreeNode>
     }
 }
 
-public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData>
+public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData, GrassDataContainer>
 {
     public GrassQuadTreeNode(Vector3 position, float size, string fileName, QuadTreeNode<LoadableDataContainer<GrassTileData>> parent = null) : base(position, size, fileName, parent)
     {
-        this.DataContainer = new GrassDataContainer();
+        this.Content = new GrassDataContainer();
     }
 
     public override void UnloadData()
     {
-        this.DataContainer.UnloadData();
+        this.Content.UnloadData();
+    }
+
+    protected override GrassDataContainer CreateContent()
+    {
+        return new GrassDataContainer();
     }
 }
 

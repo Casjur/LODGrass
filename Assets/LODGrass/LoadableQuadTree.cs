@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public abstract class LoadableQuadTree<U, V> : QuadTree<LoadableQuadTreeNode<U>> where U : struct where V : QuadTreeNode<LoadableDataContainer<U>>
+public abstract class LoadableQuadTree<U, V> : QuadTree<LoadableDataContainer<U>> where U : struct where V : QuadTreeNode<LoadableDataContainer<U>>
 {
     public string FolderPath { get; private set; }
 
@@ -42,20 +42,25 @@ public abstract class LoadableQuadTree<U, V> : QuadTree<LoadableQuadTreeNode<U>>
     }
 }
 
-public abstract class LoadableQuadTreeNode<U> : QuadTreeNode<LoadableDataContainer<U>> where U : struct
+public abstract class LoadableQuadTreeNode<U, T> : QuadTreeNode<LoadableDataContainer<U>> where U : struct where T : LoadableDataContainer<U>
 {
-    public LoadableDataContainer<U> DataContainer { get; protected set; }
+    //public LoadableDataContainer<U> DataContainer { get; protected set; }
 
     public LoadableQuadTreeNode(Vector3 position, float size, string fileName, QuadTreeNode<LoadableDataContainer<U>> parent = null) : base(position, size, parent)
     {
-
+        GenerateContent();
     }
 
+    protected virtual void GenerateContent()
+    {
+        this.Content = CreateContent();
+    }
 
+    protected abstract T CreateContent();
 
     public virtual void UnloadData()
     {
-        this.DataContainer.UnloadData();
+        this.Content.UnloadData();
     }
 
 }
