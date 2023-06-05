@@ -4,20 +4,20 @@ using UnityEngine;
 
 public class QuadTree<T> where T : class
 {
-    public virtual QuadTreeNode<T> Root { get; private set; }
+    public QuadTreeNode<T> Root { get; protected set; }
 
     // How many layers deep the tree goes (including root)
     public int Depth { get; private set; }
 
     public QuadTree(Vector3 position, float size)
     {
-        this.Root = GenerateRoot(position, size);
+        GenerateRoot(position, size);
         this.Depth = 1;
     }
 
-    public virtual QuadTreeNode<T> GenerateRoot(Vector3 position, float size)
+    protected virtual void GenerateRoot(Vector3 position, float size)
     {
-        return new QuadTreeNode<T>(position, size);
+        this.Root = new QuadTreeNode<T>(position, size);
     }
 }
 
@@ -74,8 +74,4 @@ public class QuadTreeNode<T> where T : class
         GenerateTopRight();
         GenerateTopLeft();
     }
-
 }
-
-
-

@@ -98,7 +98,4 @@ public class LODTile
     
 //}
 
-public struct GrassTileData
-{
-    public Texture2D exampleTexture;
-}
+
