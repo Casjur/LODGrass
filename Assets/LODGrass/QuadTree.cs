@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class QuadTree<T> where T : class // T = node content
+public class QuadTree<T, V> where T : class where V : QuadTreeNode<T> // T = node content
 {
     public QuadTreeNode<T> Root { get; protected set; }
 

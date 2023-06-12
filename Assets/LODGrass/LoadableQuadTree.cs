@@ -4,9 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public abstract class LoadableQuadTree<U, V> : QuadTree<LoadableDataContainer<U>> where U : struct where V : QuadTreeNode<LoadableDataContainer<U>>
+public abstract class LoadableQuadTree<V> : QuadTreeBase<V>
+    where U : struct 
+    where V : LoadableQuadTreeNode< , LoadableDataContainer<struct>>
+    //where T : LoadableDataContainer<U>
 {
     public string FolderPath { get; private set; }
+
+    public abstract List<V> LoadedNodes { get; protected set; }
 
     public LoadableQuadTree(string folderPath, Vector3 position, float size) : base(position, size)
     {
@@ -36,17 +41,25 @@ public abstract class LoadableQuadTree<U, V> : QuadTree<LoadableDataContainer<U>
         return true;
     }
 
+    /// <summary>
+    /// Update the list of loaded nodes
+    /// </summary>
+    public abstract void UpdateLoaded();
+
     public void Insert()
     {
 
     }
 }
 
-public abstract class LoadableQuadTreeNode<U, T> : QuadTreeNode<LoadableDataContainer<U>> where U : struct where T : LoadableDataContainer<U>
+public abstract class LoadableQuadTreeNode<TData, TContent> : QuadTreeNodeBase<TContent, LoadableQuadTreeNode<TData, TContent>> 
+    where TData : struct 
+    where TContent : LoadableDataContainer<TData> 
+    //: QuadTreeNode<LoadableDataContainer<U>> where U : struct where T : LoadableDataContainer<U>
 {
     //public LoadableDataContainer<U> DataContainer { get; protected set; }
 
-    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, QuadTreeNode<LoadableDataContainer<U>> parent = null) : base(position, size, parent)
+    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, LoadableQuadTreeNode<TData, TContent> parent = null) : base(position, size, parent)
     {
         GenerateContent();
     }
@@ -56,7 +69,7 @@ public abstract class LoadableQuadTreeNode<U, T> : QuadTreeNode<LoadableDataCont
         this.Content = CreateContent();
     }
 
-    protected abstract T CreateContent();
+    protected abstract LoadableDataContainer<TData> CreateContent();
 
     public virtual void UnloadData()
     {
@@ -66,13 +79,13 @@ public abstract class LoadableQuadTreeNode<U, T> : QuadTreeNode<LoadableDataCont
 }
 
 
-public abstract class LoadableDataContainer<U> where U : struct
+public abstract class LoadableDataContainer<TData> : ILoadableDataContainer where TData : struct
 {
     public string FileName { get; private set; }
     public bool IsLoaded { get; private set; }
-    public U? Data { get; private set; }
+    public TData? Data { get; private set; }
 
-    public LoadableDataContainer(U? data = null)
+    public LoadableDataContainer(TData? data = null)
     {
         this.Data = data;
     }
@@ -111,3 +124,11 @@ public abstract class LoadableDataContainer<U> where U : struct
     //    }
     //}
 }
+
+public interface ILoadableDataContainer
+{
+    public IEnumerator LoadDataCoroutine(string fullFilePath);
+    public void UnloadData();
+    public void SaveData(string fullFilePath);
+}
+
