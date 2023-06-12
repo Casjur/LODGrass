@@ -12,6 +12,13 @@ public class TreeA
 
 public class TreeB : TreeA
 {
+    //B b;
+
+    //public void SetB()
+    //{
+    //    this.b = GiveA();
+    //}
+
     public override A GiveA()
     {
         return new B();
@@ -28,9 +35,9 @@ public class B : A
 
 }
 
-public abstract class QuadTreeBase<V> : IQuadTree where V : QuadTreeNodeBase<object, V> // T = node content
+public abstract class QuadTreeBase<TNode> : IQuadTree where TNode : IQuadTreeNode
 {
-    public V Root { get; protected set; }
+    public TNode Root { get; protected set; }
 
     // How many layers deep the tree goes (including root)
     public int Depth { get; private set; }
@@ -85,7 +92,7 @@ public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode where TC
 
 public interface IQuadTree
 {
-    void GenerateRoot(Vector3 position, float size);
+    public void GenerateRoot(Vector3 position, float size);
 }
 
 public interface IQuadTreeNode

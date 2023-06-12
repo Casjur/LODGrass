@@ -72,15 +72,15 @@ public class Grass : MonoBehaviour
     }
 }
 
-public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassQuadTreeNode>
+public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
 {
-    public override List<GrassQuadTreeNode> LoadedNodes { get; protected set; } = new List<GrassQuadTreeNode>();
+    //public override List<GrassQuadTreeNode> LoadedNodes { get; protected set; } = new List<GrassQuadTreeNode>();
 
     public GrassQuadTree(string folderPath, Vector3 position, float size) : base(folderPath, position, size)
     {
     }
 
-    protected override void GenerateRoot(Vector3 position, float size)
+    public override void GenerateRoot(Vector3 position, float size)
     {
         throw new InvalidOperationException("GrassQuadTree requires a fileName to create the root node.");
     }
@@ -149,7 +149,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassQuadTreeNode>
     }
 }
 
-public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData, GrassDataContainer>
+public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
 {
     public GrassQuadTreeNode(Vector3 position, float size, string fileName, GrassQuadTreeNode parent = null) : base(position, size, fileName, parent)
     {

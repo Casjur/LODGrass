@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public abstract class LoadableQuadTree<V> : QuadTreeBase<V>
-    where U : struct 
-    where V : LoadableQuadTreeNode< , LoadableDataContainer<struct>>
-    //where T : LoadableDataContainer<U>
+public abstract class LoadableQuadTree<TData, TContent, TNode> : QuadTreeBase<TNode>
+    where TData : struct
+    where TContent : LoadableDataContainer<TData>
+    where TNode : LoadableQuadTreeNode<TData, TContent, TNode>
 {
     public string FolderPath { get; private set; }
 
-    public abstract List<V> LoadedNodes { get; protected set; }
+    public List<TNode> LoadedNodes { get; protected set; }
 
     public LoadableQuadTree(string folderPath, Vector3 position, float size) : base(position, size)
     {
@@ -19,18 +19,18 @@ public abstract class LoadableQuadTree<V> : QuadTreeBase<V>
             this.FolderPath = folderPath;
     }
 
-    protected override void GenerateRoot(Vector3 position, float size)
+    public override void GenerateRoot(Vector3 position, float size)
     {
         throw new InvalidOperationException("LoadableQuadTree requires a fileName to create the root node.");
     }
 
     protected virtual void GenerateRoot(Vector3 position, float size, string fileName)
     {
-        V node = CreateRootNode(position, size, fileName);
+        TNode node = CreateRootNode(position, size, fileName);
         this.Root = node;
     }
 
-    protected abstract V CreateRootNode(Vector3 position, float size, string fileName);
+    protected abstract TNode CreateRootNode(Vector3 position, float size, string fileName);
 
     private bool SetupFolder(string folderPath)
     {
@@ -52,14 +52,15 @@ public abstract class LoadableQuadTree<V> : QuadTreeBase<V>
     }
 }
 
-public abstract class LoadableQuadTreeNode<TData, TContent> : QuadTreeNodeBase<TContent, LoadableQuadTreeNode<TData, TContent>> 
+public abstract class LoadableQuadTreeNode<TData, TContent, TNode> : QuadTreeNodeBase<TContent, TNode> 
     where TData : struct 
-    where TContent : LoadableDataContainer<TData> 
+    where TContent : LoadableDataContainer<TData>
+    where TNode : LoadableQuadTreeNode<TData, TContent, TNode>
     //: QuadTreeNode<LoadableDataContainer<U>> where U : struct where T : LoadableDataContainer<U>
 {
     //public LoadableDataContainer<U> DataContainer { get; protected set; }
 
-    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, LoadableQuadTreeNode<TData, TContent> parent = null) : base(position, size, parent)
+    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, TNode parent = null) : base(position, size, parent)
     {
         GenerateContent();
     }
@@ -69,7 +70,7 @@ public abstract class LoadableQuadTreeNode<TData, TContent> : QuadTreeNodeBase<T
         this.Content = CreateContent();
     }
 
-    protected abstract LoadableDataContainer<TData> CreateContent();
+    protected abstract TContent CreateContent();
 
     public virtual void UnloadData()
     {
