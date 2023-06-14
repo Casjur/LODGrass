@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Grass : MonoBehaviour
 {
-    //
+    // 
     public const bool enableEditing = false;
 
     // Input variables
@@ -22,10 +22,7 @@ public class Grass : MonoBehaviour
     [SerializeField]
     float grassDensity = 8;
 
-    // Reference Input
-   
-
-    // 
+    // Contents
     public GrassQuadTree GrassData { get; private set; }
 
     // Start is called before the first frame update

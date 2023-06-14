@@ -2,40 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TreeA
-{
-    public virtual A GiveA()
-    {
-        return new A();
-    }
-}
-
-public class TreeB : TreeA
-{
-    //B b;
-
-    //public void SetB()
-    //{
-    //    this.b = GiveA();
-    //}
-
-    public override A GiveA()
-    {
-        return new B();
-    }
-}
-
-public class A
-{
-
-}
-
-public class B : A
-{
-
-}
-
-public abstract class QuadTreeBase<TNode> : IQuadTree where TNode : IQuadTreeNode
+public abstract class QuadTreeBase<TNode> : IQuadTree 
+    where TNode : IQuadTreeNode
 {
     public TNode Root { get; protected set; }
 
@@ -51,7 +19,9 @@ public abstract class QuadTreeBase<TNode> : IQuadTree where TNode : IQuadTreeNod
     public abstract void GenerateRoot(Vector3 position, float size);
 }
 
-public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode where TContent : class where TNode : QuadTreeNodeBase<TContent, TNode>
+public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode 
+    where TContent : class 
+    where TNode : QuadTreeNodeBase<TContent, TNode>
 {
     public TNode Parent { get; protected set; }
 
