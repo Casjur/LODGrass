@@ -6,6 +6,9 @@ public class GrassRenderer
 {
     public void Render(Camera camera, GrassQuadTree tree)
     {
+        // Frustum cull entire tiles
+
+        // Render remaining tiles
 
     }
 

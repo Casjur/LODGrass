@@ -100,30 +100,6 @@ public abstract class LoadableDataContainer<TData> : ILoadableDataContainer wher
     public abstract void SaveData(string fullFilePath);
 
     public abstract IEnumerator LoadDataCoroutine(string fullFilePath);
-
-    /// <summary>
-    /// Loads all data the Tile is supposed to store.
-    /// !Note: Can only be called from a monoscript class!
-    /// </summary>
-    //public IEnumerator LoadDataCoroutine(string path)
-    //{
-    //    ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
-
-    //    yield return request;
-
-    //    if (request.asset != null && request.asset is Texture2D)
-    //    {
-    //        Texture2D texture = (Texture2D)request.asset;
-
-    //        // Create the struct with the loaded Texture2D
-    //        this.Data = new GrassTileData
-    //        {
-    //            exampleTexture = texture
-    //        };
-
-    //        this.IsLoaded = true;
-    //    }
-    //}
 }
 
 public interface ILoadableDataContainer
