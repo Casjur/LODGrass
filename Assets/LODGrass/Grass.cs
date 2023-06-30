@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class Grass : MonoBehaviour
 {
@@ -29,33 +31,46 @@ public class Grass : MonoBehaviour
     void Start()
     {
         string fullFolderPath = Application.dataPath + folderPath;
-        CreateGrassQuadTree(fullFolderPath, terrain, detailMapDensity, detailMapPixelWidth, maxStoredPixels);
+        Vector2 terrainSize = new Vector2(terrain.terrainData.size.x, terrain.terrainData.size.z);
+
+        this.GrassData = new GrassQuadTree(
+            fullFolderPath, 
+            terrain.GetPosition(), 
+            terrainSize, 
+            detailMapDensity, 
+            detailMapPixelWidth, 
+            maxStoredPixels
+            );
+
+        //CreateGrassQuadTree(fullFolderPath, terrain, detailMapDensity, detailMapPixelWidth, maxStoredPixels);
     }
 
-    protected void CreateGrassQuadTree(string folderPath, Terrain canvas, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels)
-    {
-        Vector3 position = canvas.transform.position;
+    
 
-        float w_canvas = canvas.terrainData.size.x;
-        float h_canvas = canvas.terrainData.size.z;
+    //protected void CreateGrassQuadTree(string folderPath, Terrain canvas, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels)
+    //{
+    //    Vector3 position = canvas.transform.position;
 
-        float w_detailMap = Mathf.Sqrt(detailMapDensity);
-        float w_totalPixels = w_canvas * w_detailMap;
-        float w_minNoTiles = w_totalPixels / detailMapPixelWidth;
+    //    float w_canvas = canvas.terrainData.size.x;
+    //    float h_canvas = canvas.terrainData.size.z;
 
-        int noLayers = (int)Math.Ceiling(Math.Log(w_minNoTiles, 2) + 0.5);
+    //    float w_detailMap = Mathf.Sqrt(detailMapDensity);
+    //    float w_totalPixels = w_canvas * w_detailMap;
+    //    float w_minNoTiles = w_totalPixels / detailMapPixelWidth;
 
-        float w_smallTile = detailMapPixelWidth / w_detailMap;
+    //    int noLayers = (int)Math.Ceiling(Math.Log(w_minNoTiles, 2) + 0.5);
 
-        float w_rootSize = Mathf.Pow(2, noLayers) * w_smallTile;
+    //    float w_smallTile = detailMapPixelWidth / w_detailMap;
 
-        // Safeguard to avoid absurd memory/diskspace usage
-        bool isTooLarge = GrassQuadTree.IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
-        if (isTooLarge)
-            throw new Exception("Resulting Tile Tree will be too large!");
+    //    float w_rootSize = Mathf.Pow(2, noLayers) * w_smallTile;
 
-        this.GrassData = new GrassQuadTree(folderPath, position, w_rootSize);
-    }
+    //    // Safeguard to avoid absurd memory/diskspace usage
+    //    bool isTooLarge = GrassQuadTree.IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
+    //    if (isTooLarge)
+    //        throw new Exception("Resulting Tile Tree will be too large!");
+
+    //    this.GrassData = new GrassQuadTree(folderPath, position, w_rootSize);
+    //}
 
     // Update is called once per frame
     void Update()
@@ -74,7 +89,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
     public List<GrassQuadTreeNode> NodesToRender { get; protected set; } = new List<GrassQuadTreeNode>();
 
     public GrassQuadTree(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
-        : base(folderPath, position, size)
+        : base(folderPath)
     {
         float w_canvas = size.x;
         float h_canvas = size.y;
@@ -93,16 +108,23 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
         bool isTooLarge = GrassQuadTree.IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
         if (isTooLarge)
             throw new Exception("Resulting Tile Tree will be too large!");
+
+        this.GenerateRoot(position, w_rootSize);
     }
 
-
-
-    public override void GenerateRoot(Vector3 position, float size)
+    Vector2 GetSize()
     {
-        throw new InvalidOperationException("GrassQuadTree requires a fileName to create the root node.");
+        return new Vector2(1.2f, 0.1f);
     }
 
-    protected override void GenerateRoot(Vector3 position, float size, string fileName)
+
+
+    //public override void GenerateRoot(Vector3 position, float size)
+    //{
+    //    throw new InvalidOperationException("GrassQuadTree requires a fileName to create the root node.");
+    //}
+
+    public override void GenerateRoot(Vector3 position, float size, string fileName)
     {
         this.Root = new GrassQuadTreeNode(position, size, fileName);
         this.LoadedNodes.Add(this.Root);
@@ -148,6 +170,14 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
         return noTotalPixels > maxSize;
     }
 
+    void ExpandTree(int layers)
+    {
+        for (int i = 0; i < layers; i++)
+        {
+
+        }
+    }
+
     public virtual void UpdateLoaded(Vector3 cameraPosition)
     {
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
@@ -155,7 +185,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
         {
             GrassQuadTreeNode n = loaded;
             float dist = Vector3.Distance(loaded.Tile.GetPosition(), cameraPosition);
-            int distUnits = dist / this
+            //int distUnits = dist / this
             //if(dist)
         }
     }
@@ -243,6 +273,27 @@ public class GrassDataContainer : LoadableDataContainer<GrassTileData>
     //        this.IsLoaded = true;
     //    }
     //}
+
+    //public IEnumerator LoadTextureFromDisk(string filePath, Action<Texture2D> onComplete)
+    //{
+    //    var uri = Path.Combine(Application.streamingAssetsPath, filePath);
+    //    using (var request = UnityWebRequestTexture.GetTexture(uri))
+    //    {
+    //        yield return request.SendWebRequest();
+    //        if (request.result == UnityWebRequest.Result.Success)
+    //        {
+    //            this.Data
+    //            texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+    //            onComplete?.Invoke(texture);
+    //        }
+    //        else
+    //        {
+    //            Debug.LogError($"Failed to load texture from disk: {request.error}");
+    //            onComplete?.Invoke(null);
+    //        }
+    //    }
+    //}
+
 
     public override void SaveData(string fullFilePath)
     {

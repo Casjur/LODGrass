@@ -2,12 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class QuadTree<T, V> where T : class where V : QuadTreeNode<T> // T = node content
+public class QuadTree<TContent> : QuadTreeBase<QuadTreeNode<TContent>> 
+    where TContent : class
 {
-    public QuadTreeNode<T> Root { get; protected set; }
-
-    // How many layers deep the tree goes (including root)
-    public int Depth { get; private set; }
+    public QuadTree()
+    {
+        this.Depth = 0;
+    }
 
     public QuadTree(Vector3 position, float size)
     {
@@ -15,13 +16,14 @@ public class QuadTree<T, V> where T : class where V : QuadTreeNode<T> // T = nod
         this.Depth = 1;
     }
 
-    protected virtual void GenerateRoot(Vector3 position, float size)
+    public override void GenerateRoot(Vector3 position, float size)
     {
-        this.Root = new QuadTreeNode<T>(position, size);
+        this.Root = new QuadTreeNode<TContent>(position, size);
     }
 }
 
-public class QuadTreeNode<T> where T : class
+public class QuadTreeNode<T> : IQuadTreeNode
+    where T : class
 {
     public QuadTreeNode<T> Parent { get; protected set; }
 

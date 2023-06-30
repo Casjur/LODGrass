@@ -8,7 +8,12 @@ public abstract class QuadTreeBase<TNode> : IQuadTree
     public TNode Root { get; protected set; }
 
     // How many layers deep the tree goes (including root)
-    public int Depth { get; private set; }
+    public int Depth { get; protected set; }
+
+    public QuadTreeBase()
+    {
+        this.Depth = 0;
+    }
 
     public QuadTreeBase(Vector3 position, float size)
     {
@@ -51,13 +56,13 @@ public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode
     public abstract void GenerateTopRight();
     public abstract void GenerateTopLeft();
 
-    public void GenerateAllChildren()
-    {
-        GenerateBottomRight();
-        GenerateBottomLeft();
-        GenerateTopRight();
-        GenerateTopLeft();
-    }
+    //public void GenerateAllChildren()
+    //{
+    //    GenerateBottomRight();
+    //    GenerateBottomLeft();
+    //    GenerateTopRight();
+    //    GenerateTopLeft();
+    //}
 }
 
 public interface IQuadTree
@@ -72,5 +77,5 @@ public interface IQuadTreeNode
     public void GenerateTopRight();
     public void GenerateTopLeft();
 
-    public void GenerateAllChildren();
+    //public void GenerateAllChildren();
 }
