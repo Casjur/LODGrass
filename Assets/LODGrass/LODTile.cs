@@ -5,8 +5,7 @@ using UnityEngine;
 
 public class LODTile
 {
-    // Indicies of possible quadrant positions
-    public enum QuadNodePosition { TopLeft = 0, TopRight = 1, BottomLeft = 2, BottomRight = 3 };
+    
 
     // Position relative to the TopLeft origin point of the parent tile
     public static readonly Vector3[] RelativePositions = {

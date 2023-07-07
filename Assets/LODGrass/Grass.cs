@@ -126,13 +126,13 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
 
     public override void GenerateRoot(Vector3 position, float size, string fileName)
     {
-        this.Root = new GrassQuadTreeNode(position, size, fileName);
+        this.Root = new GrassQuadTreeNode(position, size);
         this.LoadedNodes.Add(this.Root);
     }
 
     protected override GrassQuadTreeNode CreateRootNode(Vector3 position, float size, string fileName)
     {
-        GrassQuadTreeNode node = new GrassQuadTreeNode(position, size, fileName);
+        GrassQuadTreeNode node = new GrassQuadTreeNode(position, size);
         return node;
     }
 
@@ -207,29 +207,43 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
 
 public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
 {
-    public GrassQuadTreeNode(Vector3 position, float size, string fileName, GrassQuadTreeNode parent = null) : base(position, size, fileName, parent)
+    public GrassQuadTreeNode(QuadNodePosition relativePosition, float size, GrassQuadTreeNode parent) 
+        : base(relativePosition, size, parent)
     {
-        this.Content = new GrassDataContainer();
+
+    }
+
+    public GrassQuadTreeNode(Vector3 position, float size) : base(position, size)
+    {
+        
     }
 
     public override void GenerateBottomLeft()
     {
-        throw new NotImplementedException();
+        float newSize = this.Tile.Tile.width / 2f;
+
+        this.BottomLeft = new GrassQuadTreeNode(QuadNodePosition.BottomLeft, newSize, this);
     }
 
     public override void GenerateBottomRight()
     {
-        throw new NotImplementedException();
+        float newSize = this.Tile.Tile.width / 2f;
+
+        this.BottomLeft = new GrassQuadTreeNode(QuadNodePosition.BottomRight, newSize, this);
     }
 
     public override void GenerateTopLeft()
     {
-        throw new NotImplementedException();
+        float newSize = this.Tile.Tile.width / 2f;
+
+        this.BottomLeft = new GrassQuadTreeNode(QuadNodePosition.TopLeft, newSize, this);
     }
 
     public override void GenerateTopRight()
     {
-        throw new NotImplementedException();
+        float newSize = this.Tile.Tile.width / 2f;
+
+        this.BottomLeft = new GrassQuadTreeNode(QuadNodePosition.TopRight, newSize, this);
     }
 
     public override void UnloadData()

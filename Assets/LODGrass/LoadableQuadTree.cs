@@ -68,16 +68,15 @@ public abstract class LoadableQuadTreeNode<TData, TContent, TNode> : QuadTreeNod
     where TData : struct 
     where TContent : LoadableDataContainer<TData>
     where TNode : LoadableQuadTreeNode<TData, TContent, TNode>
-    //: QuadTreeNode<LoadableDataContainer<U>> where U : struct where T : LoadableDataContainer<U>
 {
-    //public LoadableDataContainer<U> DataContainer { get; protected set; }
+    public TContent DataContainer { get; protected set; }
 
-    public LoadableQuadTreeNode(Vector3 position, float size, string fileName, TNode parent = null) : base(position, size, parent)
+    public LoadableQuadTreeNode(QuadNodePosition relativePosition, float size, TNode parent) : base(relativePosition, size, parent)
     {
-        GenerateContent();
+        this.Content = CreateContent();
     }
-
-    protected virtual void GenerateContent()
+    
+    public LoadableQuadTreeNode(Vector3 position, float size) : base(position, size)
     {
         this.Content = CreateContent();
     }
@@ -87,11 +86,6 @@ public abstract class LoadableQuadTreeNode<TData, TContent, TNode> : QuadTreeNod
     public virtual void UnloadData()
     {
         this.Content.UnloadData();
-    }
-
-    public override void GenerateBottomLeft()
-    {
-        this.BottomLeft = new TNode()
     }
 }
 

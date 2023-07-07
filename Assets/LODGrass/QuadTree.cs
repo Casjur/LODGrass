@@ -36,7 +36,7 @@ public class QuadTreeNode<T> : IQuadTreeNode
 
     public T Content { get; protected set; }
 
-    public QuadTreeNode(LODTile.QuadNodePosition relativePosition, float size, QuadTreeNode<T> parent)
+    public QuadTreeNode(QuadNodePosition relativePosition, float size, QuadTreeNode<T> parent)
     {
         this.Parent = parent;
         this.Tile = new LODTile(relativePosition, size);
@@ -53,22 +53,22 @@ public class QuadTreeNode<T> : IQuadTreeNode
     public void GenerateBottomRight()
     {
         float size = this.Tile.GetSize() / 2;
-        this.BottomRight = new QuadTreeNode<T>(LODTile.QuadNodePosition.BottomRight, size, this);
+        this.BottomRight = new QuadTreeNode<T>(QuadNodePosition.BottomRight, size, this);
     }
     public void GenerateBottomLeft()
     {
         float size = this.Tile.GetSize() / 2;
-        this.BottomLeft = new QuadTreeNode<T>(LODTile.QuadNodePosition.BottomLeft, size, this);
+        this.BottomLeft = new QuadTreeNode<T>(QuadNodePosition.BottomLeft, size, this);
     }
     public void GenerateTopRight()
     {
         float size = this.Tile.GetSize() / 2;
-        this.TopRight = new QuadTreeNode<T>(LODTile.QuadNodePosition.TopRight, size, this);
+        this.TopRight = new QuadTreeNode<T>(QuadNodePosition.TopRight, size, this);
     }
     public void GenerateTopLeft()
     {
         float size = this.Tile.GetSize() / 2;       
-        this.TopLeft = new QuadTreeNode<T>(LODTile.QuadNodePosition.TopLeft, size, this);
+        this.TopLeft = new QuadTreeNode<T>(QuadNodePosition.TopLeft, size, this);
     }
 
     public void GenerateAllChildren()
