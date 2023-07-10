@@ -5,27 +5,34 @@ using UnityEngine;
 
 public class LODTile
 {
-    
-
-    // Position relative to the TopLeft origin point of the parent tile
-    public static readonly Vector3[] RelativePositions = {
-        Vector3.zero,
-        Right,
-        Bottom,
-        Bottom + Right
-    };
-
     public static readonly Vector3 Top = new Vector3(0, 0, 1);
     public static readonly Vector3 Bottom = new Vector3(0, 0, -1);
     public static readonly Vector3 Left = new Vector3(-1, 0, 0);
     public static readonly Vector3 Right = new Vector3(1, 0, 0);
 
+    // Position relative to the TopLeft origin point of the parent tile
+    public static readonly Vector3[] RelativePositions = {
+        Vector3.zero,
+        Right,
+        Top,
+        Top + Right
+    };
+
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
 
-    public LODTile(QuadNodePosition relativePosition, float size) 
-        : this(LODTile.RelativePositions[(int)relativePosition] * size, size) 
-    { }
+    public LODTile(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
+    { 
+        Debug.Log("test: " + RelativePositions[1]);
+        Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
+        Debug.Log("parentPos: " + parentPosition + 
+        "; relativePos: " + relativePosition + 
+        "; posIndex: " + (int)positionIndex + 
+        "; size: " + size + 
+        "; rawRelPos: " + RelativePositions[(int)positionIndex]);
+        Vector3 position = parentPosition + relativePosition;
+        this.Tile = new Rect(position.x, position.z, size, size);
+    }
 
     public LODTile(Vector3 position, float size)
     {
@@ -38,6 +45,16 @@ public class LODTile
     public Vector3 GetPosition()
     {
         return new Vector3(this.Tile.x, 0, this.Tile.y);
+    }
+
+    public Vector3 GetCenterPosition()
+    {
+        return new Vector3(this.Tile.center.x, 0, this.Tile.center.y);
+    }
+
+    public float DistanceTo(Vector3 position)
+    {
+        return Vector3.Distance(this.GetCenterPosition(), position) - (this.GetSize() / 2);
     }
 
     public float GetSize()

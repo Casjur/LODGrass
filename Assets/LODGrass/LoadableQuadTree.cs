@@ -30,19 +30,19 @@ public abstract class LoadableQuadTree<TData, TContent, TNode> : QuadTreeBase<TN
     /// </summary>
     /// <param name="position"></param>
     /// <param name="size"></param>
-    public override void GenerateRoot(Vector3 position, float size)
-    {
-        //throw new InvalidOperationException("LoadableQuadTree requires a fileName to create the root node.");
+    // public override void GenerateRoot(Vector3 position, float size)
+    // {
+    //     //throw new InvalidOperationException("LoadableQuadTree requires a fileName to create the root node.");
         
-    }
+    // }
 
-    public virtual void GenerateRoot(Vector3 position, float size, string fileName)
-    {
-        TNode node = CreateRootNode(position, size, fileName);
-        this.Root = node;
-    }
+    // public virtual void GenerateRoot(Vector3 position, float size)
+    // {
+    //     TNode node = CreateRootNode(position, size);
+    //     this.Root = node;
+    // }
 
-    protected abstract TNode CreateRootNode(Vector3 position, float size, string fileName);
+    protected abstract TNode CreateRootNode(Vector3 position, float size);
 
     private bool SetupFolder(string folderPath)
     {

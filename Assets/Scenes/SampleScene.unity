@@ -394,3 +394,4 @@ MonoBehaviour:
   detailMapPixelWidth: 512
   maxStoredPixels: 357826560
   grassDensity: 8
+  camera: {fileID: 963194227}

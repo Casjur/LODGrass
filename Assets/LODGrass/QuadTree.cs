@@ -39,7 +39,7 @@ public class QuadTreeNode<T> : IQuadTreeNode
     public QuadTreeNode(QuadNodePosition relativePosition, float size, QuadTreeNode<T> parent)
     {
         this.Parent = parent;
-        this.Tile = new LODTile(relativePosition, size);
+        this.Tile = new LODTile(parent.Tile.GetPosition(), relativePosition, size);
     }
 
     public QuadTreeNode(Vector3 position, float size, QuadTreeNode<T> parent = null)

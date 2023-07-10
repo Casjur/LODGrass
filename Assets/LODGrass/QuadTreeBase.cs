@@ -9,7 +9,8 @@ public abstract class QuadTreeBase<TNode> : IQuadTree
     public TNode Root { get; protected set; }
 
     // How many layers deep the tree goes (including root)
-    public int Depth { get; protected set; }
+    public int Depth { get; protected set; } // !!! NOT IMPLEMENTED !!!
+    public int MaxDepth {get; protected set; }
 
     public QuadTreeBase()
     {
@@ -29,7 +30,7 @@ public abstract class QuadTreeBase<TNode> : IQuadTree
 //(probably better if this is inside the class, 
 // but than it can not be properly accessed by another class, 
 // because it is generic) 
-public enum QuadNodePosition { TopLeft = 0, TopRight = 1, BottomLeft = 2, BottomRight = 3 };
+public enum QuadNodePosition { BottomLeft = 0, BottomRight = 1, TopLeft = 2, TopRight = 3 };
 
 public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode 
     where TContent : class 
@@ -53,9 +54,10 @@ public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode
     public QuadTreeNodeBase(QuadNodePosition relativePosition, float size, TNode parent)
     {
         this.Parent = parent;
-        this.Tile = new LODTile(relativePosition, size);
+        this.Tile = new LODTile(parent.Tile.GetPosition(), relativePosition, size);
 
         this.Layer = parent.Layer + 1; // Probably bad practice to extract variable from a variable that was passed for a different reason
+        //UpdateTreeDepth(this.Layer);
         this.RelativePosition = relativePosition;
 
         GenerateIndex(parent.Index, this.Layer, relativePosition);
@@ -71,9 +73,17 @@ public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode
         this.Parent = null;
         this.Tile = new LODTile(position, size);
 
-        this.Layer = 0; // Probably bad practice to extract variable from a variable that was passed for a different reason
+        this.Layer = 0;
         this.Index = 0;
     }
+
+    // private void UpdateTreeDepth(int layer)
+    // {
+    //     if(this.Parent == null)
+
+    //     else
+    //         this.Parent.UpdateTreeDepth(layer);
+    // }
 
     public abstract void GenerateBottomRight();
     public abstract void GenerateBottomLeft();
