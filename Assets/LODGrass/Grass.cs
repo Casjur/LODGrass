@@ -54,8 +54,8 @@ public class Grass : MonoBehaviour
     void Update()
     {
         this.GrassData.UpdateNodesToRender(this.camera.transform.position);
-        //this.GrassData.DrawAllTiles();
-        //this.GrassData.DrawTilesToRender();
+        this.GrassData.DrawAllTiles();
+        this.GrassData.DrawTilesToRender();
     }
 
     private void Render()
@@ -67,7 +67,7 @@ public class Grass : MonoBehaviour
 public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
 {
     public List<GrassQuadTreeNode> NodesToRender { get; protected set; } = new List<GrassQuadTreeNode>();
-
+    private const float SplitDistanceMultiplier = 4;
 
     public GrassQuadTree(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
         : base(folderPath)
@@ -170,127 +170,52 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
         }
     }
 
-    private void UpdateNodeToRender1(GrassQuadTreeNode node, Vector3 cameraPosition)
+    private bool UpdateNodeToRender(GrassQuadTreeNode node, Vector3 cameraPosition)
     {
-        // 
-        if(UpdateNodeToRenderDown(node, cameraPosition))
-            return;
-        
-
-
-        // If camera in parent tile, keep as it is
-        if(node.Parent.Tile.IsPointInTile(cameraPosition))
-        {
-
-
-        }
-
-
-        if(node == null)
+        if (node == null)
             return false;
-        
-        float dist = Vector3.Distance(node.Tile.GetCenterPosition(), cameraPosition); // node.Tile.DistanceTo(cameraPosition);
-        int layer = DistanceToLayer(dist); 
 
-        // This could be the node
-        if(node.Layer == layer)
+        float distance = Vector3.Distance(node.Tile.GetCenterPosition(), cameraPosition);
+
+        // Node might be too close
+        if (distance < SplitDistanceMultiplier * node.Tile.GetSize())
         {
+            // Node is too close -> Split node
+            if(node.HasChildren)
+            {
+                UpdateNodeToRender(node.BottomLeft, cameraPosition);
+                UpdateNodeToRender(node.BottomRight, cameraPosition);
+                UpdateNodeToRender(node.TopLeft, cameraPosition);
+                UpdateNodeToRender(node.TopRight, cameraPosition);
+
+                return true;
+            }
+
             this.NodesToRender.Add(node);
-            node.Tile.DrawTile(Color.green);
             return true;
         }
 
-        // If node is higher than required
-        if(node.Layer < layer)
-        {
-            // Split node
-            bool isChildRendering = false;
-            isChildRendering = isChildRendering || UpdateNodeToRender(node.BottomLeft, cameraPosition);
-            isChildRendering = isChildRendering || UpdateNodeToRender(node.BottomRight, cameraPosition);
-            isChildRendering = isChildRendering || UpdateNodeToRender(node.TopLeft, cameraPosition);
-            isChildRendering = isChildRendering || UpdateNodeToRender(node.TopRight, cameraPosition);
-        }
-
-
-
-        // If current node is lower than required
-        if(node.Layer > layer)
-
-        return false;
-    }
-
-    private bool UpdateNodeToRenderDown(GrassQuadTreeNode node, Vector3 cameraPosition)
-    {
-        // If camera is in Tile, split it
-        if(!node.Tile.IsPointInTile(cameraPosition))
-            return false;
-        
-        bool isChildRendering = false;
-        isChildRendering = isChildRendering || UpdateNodeToRenderDown(node.BottomLeft, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRenderDown(node.BottomRight, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRenderDown(node.TopLeft, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRenderDown(node.TopRight, cameraPosition);
-
-        if(!isChildRendering)
-            this.NodesToRender.Add(node);
-        
-        return true;
-    }
-
-    private bool UpdateNodeToRenderUp(GrassQuadTreeNode node, Vector3 cameraPosition)
-    {
-
-    }
-
-    private bool ForceChildrenToRender(GrassQuadTreeNode node, Vector3 cameraPosition)
-
-    private bool UpdateNodeToRender(GrassQuadTreeNode node, Vector3 cameraPosition) // Needs another name
-    {
-        if(node == null)
-            return false;
-
-        float dist = node.Tile.DistanceTo(cameraPosition);
-        int layer = DistanceToLayer(dist); 
-        //Debug.Log("dist: "+ dist + "; layer: " + layer);
-
-        // This could be the node
-        if(node.Layer == layer)
+        if(node.Parent == null)
         {
             this.NodesToRender.Add(node);
-            node.Tile.DrawTile(Color.green);
             return true;
         }
 
-        // // Node could be higher
-        // if(node.Layer > layer)
-        // {
-        //     Debug.Log("node.Layer: " + node.Layer + "; layer: " + layer); 
-        //     if(UpdateNodeToRender(node.Parent, cameraPosition)) // Don't know if the return is correct here
-        //         return true;
+        float distanceToParent = Vector3.Distance(node.Parent.Tile.GetCenterPosition(), cameraPosition);
+        
+        // Node is too far away -> render parent
+        if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Tile.GetSize())
+        {
+            if (this.NodesToRender.Contains(node.Parent))
+                return true;
             
-        //     this.NodesToRender.Add(node);
-        //     node.Tile.DrawTile(Color.black);
-        //     return true;
-        // }
-
-        
-        // Node is deeper
-        bool isChildRendering = false;
-        isChildRendering = isChildRendering || UpdateNodeToRender(node.BottomLeft, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRender(node.BottomRight, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRender(node.TopLeft, cameraPosition);
-        isChildRendering = isChildRendering || UpdateNodeToRender(node.TopRight, cameraPosition);
-
-        // There are no deeper nodes
-        if(!isChildRendering)
-        {
-            Debug.Log("No children rendering.");
-            node.Tile.DrawTile(Color.yellow);
-            this.NodesToRender.Add(node);
+            this.NodesToRender.Add(node.Parent);
             return true;
         }
-        
-        return false;
+
+        // Node is fine as it is
+        this.NodesToRender.Add(node);
+        return true;
     }
 
     private int DistanceToLayer(float distance)
