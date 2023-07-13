@@ -5,6 +5,9 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
+// Potential optimizations:
+// 1. In renderer, load nodes async all at once, not one at a time
+
 public class Grass : MonoBehaviour
 {
     // 
@@ -16,9 +19,9 @@ public class Grass : MonoBehaviour
     [SerializeField]
     Terrain terrain;
     [SerializeField]
-    int detailMapDensity = 4;
+    float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39 texel)
     [SerializeField]
-    int detailMapPixelWidth = 512;
+    int detailMapPixelWidth = 512; // Ghost of Tsushima waarde
     [SerializeField]
     double maxStoredPixels = 357826560;
     [SerializeField]
@@ -30,6 +33,7 @@ public class Grass : MonoBehaviour
 
     // Contents
     public GrassQuadTree GrassData { get; private set; }
+    private GrassRenderer GrassRenderer = new GrassRenderer();
 
     // Start is called before the first frame update
     void Start()
@@ -53,21 +57,13 @@ public class Grass : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        this.GrassData.UpdateNodesToRender(this.camera.transform.position);
-        this.GrassData.DrawAllTiles();
-        this.GrassData.DrawTilesToRender();
-    }
-
-    private void Render()
-    {
-
+        this.GrassRenderer.ProcessAndRender(this, camera, this.GrassData);
     }
 }
 
-public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
+public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
 {
-    public List<GrassQuadTreeNode> NodesToRender { get; protected set; } = new List<GrassQuadTreeNode>();
-    private const float SplitDistanceMultiplier = 4;
+    
 
     public GrassQuadTree(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
         : base(folderPath)
@@ -79,7 +75,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
         float w_totalPixels = w_canvas * w_detailMap;
         float w_minNoTiles = w_totalPixels / detailMapPixelWidth;
 
-        int noLayers = (int)Math.Ceiling(Math.Log(w_minNoTiles, 2) + 0.5);
+        int noLayers = (int)Math.Ceiling(Math.Log(w_minNoTiles, 2));// + 0.5);
 
         float w_smallTile = detailMapPixelWidth / w_detailMap;
 
@@ -87,30 +83,19 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
 
         // Safeguard to avoid absurd memory/diskspace usage
         bool isTooLarge = GrassQuadTree.IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
-        if (isTooLarge)
-            throw new Exception("Resulting Tile Tree will be too large!");
+        //if (isTooLarge)
+        //    throw new Exception("Resulting Tile Tree will be too large!");
 
         this.MaxDepth = noLayers;
         this.GenerateRoot(position, w_rootSize);
     }
 
-    Vector2 GetSize()
-    {
-        return new Vector2(1.2f, 0.1f);
-    }
-
     public override void GenerateRoot(Vector3 position, float size)
     {
-        this.Root = new GrassQuadTreeNode(position, size);
+        this.Root = new QuadTreeNode<GrassDataContainer>(position, size);
         this.Depth = 1;
         //this.LoadedNodes.Add(this.Root);
-        this.NodesToRender.Add(this.Root);
-    }
-
-    protected override GrassQuadTreeNode CreateRootNode(Vector3 position, float size)
-    {
-        GrassQuadTreeNode node = new GrassQuadTreeNode(position, size);
-        return node;
+        //this.NodesToRender.Add(this.Root);
     }
 
     /// <summary>
@@ -138,6 +123,8 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
 
         // Add 1 for the root
         noTotalTiles++;
+        Debug.Log(noTotalTiles);
+
 
         // Total number of pixels
         double noTotalPixels = noTotalTiles * w_pixels * h_pixels;
@@ -146,218 +133,68 @@ public class GrassQuadTree : LoadableQuadTree<GrassTileData, GrassDataContainer,
 
         return noTotalPixels > maxSize;
     }
-
-    public void ExpandTree(int layers)
-    {
-        if(layers < 1)
-            return;
-        
-        this.Root.ExpandNode(layers);
-    }
-
-    public virtual void UpdateNodesToRender(Vector3 cameraPosition)
-    {
-        Debug.Log("NoNodesToRender: " + this.NodesToRender.Count);
-
-        GrassQuadTreeNode[] nodesToRenderCopy = new GrassQuadTreeNode[this.NodesToRender.Count];
-        this.NodesToRender.CopyTo(nodesToRenderCopy);
-        this.NodesToRender = new List<GrassQuadTreeNode>(); // Bad idea (extra costs)
-
-        // Iterate over loaded nodes, and determine which need to be loaded or unloaded
-        foreach(GrassQuadTreeNode node in nodesToRenderCopy)
-        {
-            UpdateNodeToRender(node, cameraPosition);
-        }
-    }
-
-    private bool UpdateNodeToRender(GrassQuadTreeNode node, Vector3 cameraPosition)
-    {
-        if (node == null)
-            return false;
-
-        float distance = Vector3.Distance(node.Tile.GetCenterPosition(), cameraPosition);
-
-        // Node might be too close
-        if (distance < SplitDistanceMultiplier * node.Tile.GetSize())
-        {
-            // Node is too close -> Split node
-            if(node.HasChildren)
-            {
-                UpdateNodeToRender(node.BottomLeft, cameraPosition);
-                UpdateNodeToRender(node.BottomRight, cameraPosition);
-                UpdateNodeToRender(node.TopLeft, cameraPosition);
-                UpdateNodeToRender(node.TopRight, cameraPosition);
-
-                return true;
-            }
-
-            this.NodesToRender.Add(node);
-            return true;
-        }
-
-        if(node.Parent == null)
-        {
-            this.NodesToRender.Add(node);
-            return true;
-        }
-
-        float distanceToParent = Vector3.Distance(node.Parent.Tile.GetCenterPosition(), cameraPosition);
-        
-        // Node is too far away -> render parent
-        if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Tile.GetSize())
-        {
-            if (this.NodesToRender.Contains(node.Parent))
-                return true;
-            
-            this.NodesToRender.Add(node.Parent);
-            return true;
-        }
-
-        // Node is fine as it is
-        this.NodesToRender.Add(node);
-        return true;
-    }
-
-    private int DistanceToLayer(float distance)
-    {
-        return (int)(1000 / distance); // replace 100 with RenderDistance
-    }
-
+    
+    
     public override void UpdateLoaded()
     {
         throw new InvalidOperationException("Requires Camera (position) to check for needed changes to loaded tiles");
     }
 
-    public void DrawTilesToRender()
-    {
-        foreach(GrassQuadTreeNode node in this.NodesToRender)
-        {
-            node.Tile.DrawTile(Color.red);
-        }
-    }
-
-    public void DrawAllTiles()
-    {
-        this.Root.DrawTiles(this.MaxDepth);
-    }
-}
-
-public class GrassQuadTreeNode : LoadableQuadTreeNode<GrassTileData, GrassDataContainer, GrassQuadTreeNode>
-{
-    public GrassQuadTreeNode(QuadNodePosition relativePosition, float size, GrassQuadTreeNode parent) 
-        : base(relativePosition, size, parent)
-    {
-
-    }
-
-    public GrassQuadTreeNode(Vector3 position, float size) : base(position, size)
-    {
-        
-    }
-
-    public override void GenerateBottomLeft()
-    {
-        float newSize = this.Tile.Tile.width / 2f;
-
-        this.BottomLeft = new GrassQuadTreeNode(QuadNodePosition.BottomLeft, newSize, this);
-    }
-
-    public override void GenerateBottomRight()
-    {
-        float newSize = this.Tile.Tile.width / 2f;
-
-        this.BottomRight = new GrassQuadTreeNode(QuadNodePosition.BottomRight, newSize, this);
-    }
-
-    public override void GenerateTopLeft()
-    {
-        float newSize = this.Tile.Tile.width / 2f;
-
-        this.TopLeft = new GrassQuadTreeNode(QuadNodePosition.TopLeft, newSize, this);
-    }
-
-    public override void GenerateTopRight()
-    {
-        float newSize = this.Tile.Tile.width / 2f;
-
-        this.TopRight = new GrassQuadTreeNode(QuadNodePosition.TopRight, newSize, this);
-    }
-
-    public override void UnloadData()
-    {
-        this.Content.UnloadData();
-    }
-
-    protected override GrassDataContainer CreateContent()
-    {
-        return new GrassDataContainer();
-    }
-
-    public void ExpandNode(int layers)
-    {
-        if(layers < 1)
-            return;
-        
-        layers--;
-
-        this.GenerateBottomLeft();
-        this.BottomLeft.ExpandNode(layers);
-        this.GenerateBottomRight();
-        this.BottomRight.ExpandNode(layers);
-        this.GenerateTopLeft();
-        this.TopLeft.ExpandNode(layers);
-        this.GenerateTopRight();
-        this.TopRight.ExpandNode(layers);
-    }
-
-    public void DrawTiles(int depth)
-    {
-        if(this.Layer > depth)
-            return;
-        
-        if(this.BottomLeft != null)
-            this.BottomLeft.DrawTiles(depth);
-        if(this.BottomRight != null)
-            this.BottomRight.DrawTiles(depth);
-        if(this.TopLeft != null)
-            this.TopLeft.DrawTiles(depth);
-        if(this.TopRight != null)
-            this.TopRight.DrawTiles(depth);
-
-        this.Tile.DrawTile(Color.blue);
-    }
+    //public void DrawTilesToRender()
+    //{
+    //    foreach(QuadTreeNode<GrassDataContainer> node in this.NodesToRender)
+    //    {
+    //        node.Tile.DrawTile(Color.red);
+    //    }
+    //}
 }
 
 public class GrassDataContainer : LoadableDataContainer<GrassTileData>
 {
-    public override IEnumerator LoadDataCoroutine(string fullFilePath)
+    public GrassDataContainer(string fileName) : base(fileName)
     {
-        throw new System.NotImplementedException();
     }
+
+    public GrassDataContainer(string fileName, GrassTileData data) : base(fileName, data)
+    {
+    }
+
+    //public override IEnumerator LoadDataCoroutine(string folderPath)
+    //{
+    //    if (this.IsLoaded)
+    //        return;
+
+
+
+    //    throw new System.NotImplementedException();
+    //}
 
     /// <summary>
     /// Loads all data the Tile is supposed to store.
     /// !Note: Can only be called from a monoscript class!
     /// </summary>
-    //public IEnumerator LoadDataCoroutine(string path)
-    //{
-    //    ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
+    public override IEnumerator LoadDataCoroutine(string path)
+    {
+        if(this.IsLoaded)
+            yield return null;
 
-    //    yield return request;
+        ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
 
-    //    if (request.asset != null && request.asset is Texture2D)
-    //    {
-    //        Texture2D texture = (Texture2D)request.asset;
+        yield return request;
 
-    //        // Create the struct with the loaded Texture2D
-    //        this.Data = new GrassTileData
-    //        {
-    //            exampleTexture = texture
-    //        };
+        if (request.asset != null && request.asset is Texture2D)
+        {
+            Texture2D texture = (Texture2D)request.asset;
 
-    //        this.IsLoaded = true;
-    //    }
-    //}
+            // Create the struct with the loaded Texture2D
+            this.Data = new GrassTileData
+            {
+                exampleTexture = texture
+            };
+
+            this.IsLoaded = true;
+        }
+    }
 
     //public IEnumerator LoadTextureFromDisk(string filePath, Action<Texture2D> onComplete)
     //{
@@ -380,7 +217,7 @@ public class GrassDataContainer : LoadableDataContainer<GrassTileData>
     //}
 
 
-    public override void SaveData(string fullFilePath)
+    public override void SaveData(string folderPath)
     {
         throw new System.NotImplementedException();
     }

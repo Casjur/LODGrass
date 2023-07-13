@@ -23,13 +23,7 @@ public class LODTile
 
     public LODTile(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
     { 
-        Debug.Log("test: " + RelativePositions[1]);
         Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
-        Debug.Log("parentPos: " + parentPosition + 
-        "; relativePos: " + relativePosition + 
-        "; posIndex: " + (int)positionIndex + 
-        "; size: " + size + 
-        "; rawRelPos: " + RelativePositions[(int)positionIndex]);
         Vector3 position = parentPosition + relativePosition;
         this.Tile = new Rect(position.x, position.z, size, size);
     }

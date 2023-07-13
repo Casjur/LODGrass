@@ -56,13 +56,13 @@ public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode
     public QuadTreeNodeBase(QuadNodePosition relativePosition, float size, TNode parent)
     {
         this.Parent = parent;
-        this.Tile = new LODTile(parent.Tile.GetPosition(), relativePosition, size);
         this.Parent.HasChildren = true;
-
         this.Layer = parent.Layer + 1; // Probably bad practice to extract variable from a variable that was passed for a different reason
         //UpdateTreeDepth(this.Layer);
         this.RelativePosition = relativePosition;
 
+        this.Tile = new LODTile(parent.Tile.GetPosition(), relativePosition, size);
+        
         GenerateIndex(parent.Index, this.Layer, relativePosition);
     }
 

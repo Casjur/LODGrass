@@ -4,14 +4,13 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public abstract class LoadableQuadTree<TData, TContent, TNode> : QuadTreeBase<TNode>
+public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
+    where TContainer : LoadableDataContainer<TData>
     where TData : struct
-    where TContent : LoadableDataContainer<TData>
-    where TNode : LoadableQuadTreeNode<TData, TContent, TNode>
 {
     public string FolderPath { get; private set; }
 
-    public List<TNode> LoadedNodes { get; protected set; }
+    public List<QuadTreeNode<LoadableDataContainer<TData>>> LoadedNodes { get; protected set; }
 
     public LoadableQuadTree(string folderPath) : base()
     {
@@ -25,25 +24,6 @@ public abstract class LoadableQuadTree<TData, TContent, TNode> : QuadTreeBase<TN
             this.FolderPath = folderPath;
     }
 
-    /// <summary>
-    /// This method will not work loadable trees!
-    /// </summary>
-    /// <param name="position"></param>
-    /// <param name="size"></param>
-    // public override void GenerateRoot(Vector3 position, float size)
-    // {
-    //     //throw new InvalidOperationException("LoadableQuadTree requires a fileName to create the root node.");
-        
-    // }
-
-    // public virtual void GenerateRoot(Vector3 position, float size)
-    // {
-    //     TNode node = CreateRootNode(position, size);
-    //     this.Root = node;
-    // }
-
-    protected abstract TNode CreateRootNode(Vector3 position, float size);
-
     private bool SetupFolder(string folderPath)
     {
         DirectoryInfo folder = Directory.CreateDirectory(folderPath);
@@ -56,7 +36,10 @@ public abstract class LoadableQuadTree<TData, TContent, TNode> : QuadTreeBase<TN
     /// <summary>
     /// Update the list of loaded nodes
     /// </summary>
-    public abstract void UpdateLoaded();
+    public virtual void UpdateLoaded()
+    {
+        // NOT IMPLEMENTED!
+    }
 
     public void Insert()
     {
@@ -90,32 +73,41 @@ public abstract class LoadableQuadTreeNode<TData, TContent, TNode> : QuadTreeNod
 }
 
 
-public abstract class LoadableDataContainer<TData> : ILoadableDataContainer where TData : struct
+public abstract class LoadableDataContainer<TData> : ILoadableDataContainer 
+    where TData : struct
 {
-    public string FileName { get; private set; }
-    public bool IsLoaded { get; private set; }
-    public TData? Data { get; private set; }
+    public string FileName { get; protected set; }
+    public bool IsLoaded { get; protected set; } = false;
+    public TData? Data { get; protected set; }
 
-    public LoadableDataContainer(TData? data = null)
+    public LoadableDataContainer(string fileName)
     {
+        this.FileName = fileName;
+        this.IsLoaded = false;
+    }
+
+    public LoadableDataContainer(string fileName, TData data)
+    {
+        this.FileName = fileName;
         this.Data = data;
+        this.IsLoaded = true;
     }
 
     public virtual void UnloadData()
     {
         this.Data = null;
-        Resources.UnloadUnusedAssets();
+        Resources.UnloadUnusedAssets(); // Probably a bad idea if multiple are unloaded
     }
 
-    public abstract void SaveData(string fullFilePath);
+    public abstract void SaveData(string folderPath);
 
-    public abstract IEnumerator LoadDataCoroutine(string fullFilePath);
+    public abstract IEnumerator LoadDataCoroutine(string folderPath);
 }
 
 public interface ILoadableDataContainer
 {
-    public IEnumerator LoadDataCoroutine(string fullFilePath);
+    public IEnumerator LoadDataCoroutine(string folderPath);
     public void UnloadData();
-    public void SaveData(string fullFilePath);
+    public void SaveData(string folderPath);
 }
 
