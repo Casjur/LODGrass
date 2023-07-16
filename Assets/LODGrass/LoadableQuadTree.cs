@@ -10,16 +10,22 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
 {
     public string FolderPath { get; private set; }
 
+    private MonoBehaviour monoBehaviour; // This is here to start coroutines (for async loading)
+
     public List<QuadTreeNode<LoadableDataContainer<TData>>> LoadedNodes { get; protected set; }
 
-    public LoadableQuadTree(string folderPath) : base()
+    public LoadableQuadTree(MonoBehaviour monoBehaviour, string folderPath) : base()
     {
+        this.monoBehaviour = monoBehaviour;
+
         if (SetupFolder(folderPath))
             this.FolderPath = folderPath;
     }
 
-    public LoadableQuadTree(string folderPath, Vector3 position, float size) : base(position, size)
+    public LoadableQuadTree(MonoBehaviour monoBehaviour, string folderPath, Vector3 position, float size) : base(position, size)
     {
+        this.monoBehaviour = monoBehaviour;
+
         if (SetupFolder(folderPath))
             this.FolderPath = folderPath;
     }
@@ -44,6 +50,12 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
     public void Insert()
     {
 
+    }
+
+    public void LoadNodeAndUp(QuadTreeNode<TContainer> node)
+    {
+
+        node.Content.LoadData
     }
 }
 
@@ -102,10 +114,13 @@ public abstract class LoadableDataContainer<TData> : ILoadableDataContainer
     public abstract void SaveData(string folderPath);
 
     public abstract IEnumerator LoadDataCoroutine(string folderPath);
+
+    public abstract bool LoadData(string folderPath);
 }
 
 public interface ILoadableDataContainer
 {
+    public bool LoadData(string folderPath);
     public IEnumerator LoadDataCoroutine(string folderPath);
     public void UnloadData();
     public void SaveData(string folderPath);

@@ -13,10 +13,13 @@ public class GrassRenderer
 
     private List<RenderTile> tilesToRender;
 
-    public void ProcessAndRender(MonoBehaviour monoBehaviour, Camera camera, GrassQuadTree tree) //List<QuadTree<GrassDataContainer>> tilesToRender)  //GrassQuadTree tree)
+    public GrassRenderer(MonoBehaviour monoBehaviour)
     {
-        this.monoBehaviour = monoBehaviour; 
+        this.monoBehaviour = monoBehaviour;
+    }
 
+    public void ProcessAndRender(Camera camera, GrassQuadTree tree) //List<QuadTree<GrassDataContainer>> tilesToRender)  //GrassQuadTree tree)
+    {
         if (nodesToLoad.Count == 0)
             this.nodesToLoad.Add(tree.Root);
 

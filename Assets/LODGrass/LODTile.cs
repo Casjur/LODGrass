@@ -62,6 +62,39 @@ public class LODTile
         return this.Tile.Contains(v2D);
     }
 
+    public bool IsRectOnlyInTile(Rect rect)
+    {
+        Vector2 bottomLeftCorner = new Vector2(rect.x, rect.y);
+        if (!this.Tile.Contains(bottomLeftCorner))
+            return false;
+
+        Vector2 topRightCorner = new Vector2(rect.xMax, rect.yMax);
+        if (!this.Tile.Contains(topRightCorner))
+            return false;
+
+        return true;
+    }
+
+    public QuadNodePosition GetRelativePositionInTile(Vector3 position)
+    {
+        float halfLength = Tile.width / 2;
+
+        if (position.z < Tile.y + halfLength)
+        {
+            if (position.x < Tile.x + halfLength)
+                return QuadNodePosition.BottomLeft;
+            else
+                return QuadNodePosition.BottomRight;
+        }
+        else
+        {
+            if (position.x < Tile.x + halfLength)
+                return QuadNodePosition.TopLeft;
+            else
+                return QuadNodePosition.TopRight;
+        }
+    }
+
     public void DrawTile(Color color)
     {
         Debug.DrawLine(
