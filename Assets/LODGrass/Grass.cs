@@ -36,7 +36,7 @@ public class Grass : MonoBehaviour
     private GrassRenderer GrassRenderer;
 
     //
-    public readonly List<GrassData> GrassList = new List<GrassData>(); 
+    public readonly List<GrassTileData> GrassList = new List<GrassTileData>(); 
 
     // Start is called before the first frame update
     void Start()
@@ -67,7 +67,7 @@ public class Grass : MonoBehaviour
     }
 }
 
-public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
+public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileData>, GrassTileData>
 {
     public GrassQuadTree(MonoBehaviour monoBehaviour, string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
         : base(monoBehaviour, folderPath)
@@ -96,7 +96,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
 
     public override void GenerateRoot(Vector3 position, float size)
     {
-        this.Root = new QuadTreeNode<GrassDataContainer>(position, size);
+        this.Root = new QuadTreeNode<LoadableStructContainer<GrassTileData>>(position, size);
         this.Depth = 1;
         //this.LoadedNodes.Add(this.Root);
         //this.NodesToRender.Add(this.Root);
@@ -144,23 +144,59 @@ public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
         throw new InvalidOperationException("Requires Camera (position) to check for needed changes to loaded tiles");
     }
 
+    // brushSize naar world size veranderen
     public void PaintGrass(Vector3 brushWorldPosition, int brushSize, int grassTypeIndex )
     {
         // Dont do anything if brush is not on terrain
         if (!this.Root.Tile.IsPointInTile(brushWorldPosition))
             return;
 
+        List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToPaint = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
+
         // Get the bottom node at position
-        QuadTreeNode<GrassDataContainer> bottomNode = this.GenerateToBottomTileAtPosition(brushWorldPosition);
+        QuadTreeNode<LoadableStructContainer<GrassTileData>> bottomNode = this.GenerateToBottomTileAtPosition(brushWorldPosition);
         if (bottomNode == null)
             return;
 
+        // Load nodes
+        // ...
+
+        // Wait for nodes to be loaded before painting
+
         // Check whether or not the brush crosses into neighbouring tile
         Rect brushBounds = new Rect(brushWorldPosition.x, brushWorldPosition.y, brushSize, brushSize);
+        
         if (bottomNode.Tile.IsRectOnlyInTile(brushBounds))
         { // Brush is only in this tile
 
+            Texture2D tex = bottomNode.Content.Data.Value.exampleTexture;
+
+            // Convert to UV space
+            Vector2Int relativePosition = new Vector2Int(
+                (int)(brushWorldPosition.x - bottomNode.Tile.Tile.x),
+                (int)(brushWorldPosition.z - bottomNode.Tile.Tile.y)
+                );
+            Vector2Int uv = relativePosition / (int)bottomNode.Tile.GetSize();
+            
+            // Set pixels of "brush"
+            for (int x = uv.x; x < tex.width && x < (uv.x + brushSize); x++)
+            {
+                for (int y = uv.y; y < tex.height && y < (uv.y + brushSize); y++)
+                {
+                    tex.SetPixel(x, y, new Color(1, 1, 1, 0));
+                }
+            }
+
+            tex.Apply();
+            bottomNode.Content.SaveData(this.FolderPath);
+
             // Load this and all parent nodes
+            for(int mipLevel = 0; nodeToLoad)
+            while (nodeToLoad.Parent != null)
+            {
+                
+            }
+
             this.LoadNodeAndUp(bottomNode);
 
         }
@@ -169,7 +205,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
             // Brush crosses into a neighbouring tile
         }
 
-            while (node != null)
+        while (node != null)
         {
             // Convert to UV space
             Vector2 relativePosition = new Vector2(
@@ -181,7 +217,7 @@ public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
             Texture2D test = new Texture2D(512, 512);
             test.SetPixel()
 
-            node = node.
+            node = node.;
         }
          
 
@@ -197,79 +233,10 @@ public class GrassQuadTree : LoadableQuadTree<GrassDataContainer, GrassTileData>
 
         // Up2 
     }
-}
 
-public class GrassDataContainer : LoadableDataContainer<GrassTileData>
-{
-    public GrassDataContainer(string fileName) : base(fileName)
+    private void PaintRect()
     {
-    }
 
-    public GrassDataContainer(string fileName, GrassTileData data) : base(fileName, data)
-    {
-    }
-
-    //public override IEnumerator LoadDataCoroutine(string folderPath)
-    //{
-    //    if (this.IsLoaded)
-    //        return;
-
-
-
-    //    throw new System.NotImplementedException();
-    //}
-
-    /// <summary>
-    /// Loads all data the Tile is supposed to store.
-    /// !Note: Can only be called from a monoscript class!
-    /// </summary>
-    public override IEnumerator LoadDataCoroutine(string path)
-    {
-        if(this.IsLoaded)
-            yield return null;
-
-        ResourceRequest request = Resources.LoadAsync<Texture2D>(path); // Assuming the texture is in the "Resources" folder
-
-        yield return request;
-
-        if (request.asset != null && request.asset is Texture2D)
-        {
-            Texture2D texture = (Texture2D)request.asset;
-
-            // Create the struct with the loaded Texture2D
-            this.Data = new GrassTileData
-            {
-                exampleTexture = texture
-            };
-
-            this.IsLoaded = true;
-        }
-    }
-
-    //public IEnumerator LoadTextureFromDisk(string filePath, Action<Texture2D> onComplete)
-    //{
-    //    var uri = Path.Combine(Application.streamingAssetsPath, filePath);
-    //    using (var request = UnityWebRequestTexture.GetTexture(uri))
-    //    {
-    //        yield return request.SendWebRequest();
-    //        if (request.result == UnityWebRequest.Result.Success)
-    //        {
-    //            this.Data
-    //            texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-    //            onComplete?.Invoke(texture);
-    //        }
-    //        else
-    //        {
-    //            Debug.LogError($"Failed to load texture from disk: {request.error}");
-    //            onComplete?.Invoke(null);
-    //        }
-    //    }
-    //}
-
-
-    public override void SaveData(string folderPath)
-    {
-        throw new System.NotImplementedException();
     }
 }
 
@@ -278,14 +245,7 @@ public struct GrassTileData
     public Texture2D exampleTexture;
 }
 
-public class GrassData
-{
-    public const 
-}
-
 public interface IGrassData
 {
 
 }
-
-

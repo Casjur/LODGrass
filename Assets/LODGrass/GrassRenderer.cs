@@ -8,7 +8,7 @@ public class GrassRenderer
 
     // VERGEET NIET DE ROOT AAN DE TILES TO LOAD TOE TE VOEGEN
 
-    private List<QuadTreeNode<GrassDataContainer>> nodesToLoad = new List<QuadTreeNode<GrassDataContainer>>();
+    private List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
     private const float SplitDistanceMultiplier = 2;
 
     private List<RenderTile> tilesToRender;
@@ -44,22 +44,22 @@ public class GrassRenderer
 
     }
 
-    public virtual void UpdateNodesToLoad(Vector3 cameraPosition) // Should maybe be in the GrassRenderer class
+    public virtual void UpdateNodesToLoad(Vector3 cameraPosition) // Should probably be in the Grass class
     {
         Debug.Log("noNodesToLoad: " + this.nodesToLoad.Count);
 
-        QuadTreeNode<GrassDataContainer>[] nodesToLoadCopy = new QuadTreeNode<GrassDataContainer>[this.nodesToLoad.Count];
+        QuadTreeNode<LoadableStructContainer<GrassTileData>>[] nodesToLoadCopy = new QuadTreeNode<LoadableStructContainer<GrassTileData>>[this.nodesToLoad.Count];
         this.nodesToLoad.CopyTo(nodesToLoadCopy);
-        this.nodesToLoad = new List<QuadTreeNode<GrassDataContainer>>(); // Bad idea (extra costs)
+        this.nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>(); // Bad idea (extra costs)
 
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
-        foreach (QuadTreeNode<GrassDataContainer> node in nodesToLoadCopy)
+        foreach (QuadTreeNode<LoadableStructContainer<GrassTileData>> node in nodesToLoadCopy)
         {
             UpdateNodeToLoad(node, cameraPosition);
         }
     }
 
-    private bool UpdateNodeToLoad(QuadTreeNode<GrassDataContainer> node, Vector3 cameraPosition)
+    private bool UpdateNodeToLoad(QuadTreeNode<LoadableStructContainer<GrassTileData>> node, Vector3 cameraPosition)
     {
         if (node == null)
             return false;
@@ -107,15 +107,15 @@ public class GrassRenderer
         return true;
     }
 
-    private void LoadNodes(MonoBehaviour monoBehaviour, string folderPath, List<QuadTreeNode<GrassDataContainer>> tilesToLoad)
+    private void LoadNodes(MonoBehaviour monoBehaviour, string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
     {
-        foreach(QuadTreeNode<GrassDataContainer> tile in tilesToLoad)
+        foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> tile in tilesToLoad)
         {
             monoBehaviour.StartCoroutine(tile.Content.LoadDataCoroutine(folderPath));
         }
     }
 
-    private IEnumerator LoadNodesAllAsync(string folderPath, List<QuadTreeNode<GrassDataContainer>> tilesToLoad)
+    private IEnumerator LoadNodesAllAsync(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
     {
         // NOT IMPLEMENTED. not sure if I should
         yield return null;
@@ -130,7 +130,7 @@ public class GrassRenderer
 
     public void DrawTilesToLoad()
     {
-        foreach (QuadTreeNode<GrassDataContainer> node in this.nodesToLoad)
+        foreach (QuadTreeNode<LoadableStructContainer<GrassTileData>> node in this.nodesToLoad)
         {
             node.Tile.DrawTile(Color.red);
         }
