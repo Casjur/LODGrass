@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Networking;
@@ -17,8 +18,6 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
     public string FileName { get; protected set; }
     public TData? Data { get; protected set; }
     public bool IsLoaded { get; protected set; } = false;
-    
-    public UnityEvent OnDataLoaded;
 
     public LoadableStructContainer(string fileName)
     {
@@ -50,24 +49,74 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
 
     }
 
-    public virtual IEnumerator LoadDataCoroutine(string folderPath)
+    //public virtual IEnumerator LoadData(string folderPath)
+    //{
+    //    yield return null; // Yield control back to the main thread.
+
+    //    if (this.IsLoaded)
+    //    {
+    //        // Data is already loaded.
+    //        yield break;
+    //    }
+
+    //    UnityWebRequest www = UnityWebRequest.Get("file://" + folderPath + this.FileName); // Dont know if `this` can be used in a coroutine that was started from another class
+
+    //    yield return www.SendWebRequest();
+
+    //    if (www.result != UnityWebRequest.Result.Success)
+    //    {
+    //        Debug.LogError("Error loading file: " + www.error);
+    //        yield break;
+    //    }
+
+    //    byte[] dataBytes = www.downloadHandler.data;
+
+    //    try
+    //    {
+    //        // Deserialize the struct.
+    //        this.Data = ByteArrayToStructure<TData>(dataBytes);
+    //        this.IsLoaded = true;
+    //        OnDataLoaded.Invoke();
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        // Handle any exceptions that may occur during deserialization.
+    //        Debug.LogError($"Error deserializing data: {e.Message}");
+    //    }
+    //}
+
+    public async Task<string> Bla()
     {
-        yield return null; // Yield control back to the main thread.
+        string foo = "bar";
+        await Task.Delay(10);
+        return foo;
+    }
+
+    public virtual async Task LoadData(string folderPath)
+    {
+        //yield return null; // Yield control back to the main thread.
 
         if (this.IsLoaded)
         {
             // Data is already loaded.
-            yield break;
+            //yield break;
+            return;
         }
 
-        UnityWebRequest www = UnityWebRequest.Get("file://" + folderPath + this.FileName); // Dont know if `this` can be used in a coroutine that was started from another class
+        UnityWebRequest www = UnityWebRequest.Get("file://" + folderPath + this.FileName);
 
-        yield return www.SendWebRequest();
+        AsyncOperation asyncOp = www.SendWebRequest();
+
+        while (!asyncOp.isDone)
+        {
+            await Task.Yield(); // Yield control back to the main thread.
+        }
 
         if (www.result != UnityWebRequest.Result.Success)
         {
             Debug.LogError("Error loading file: " + www.error);
-            yield break;
+            return;
+            //yield break;
         }
 
         byte[] dataBytes = www.downloadHandler.data;
@@ -77,7 +126,6 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
             // Deserialize the struct.
             this.Data = ByteArrayToStructure<TData>(dataBytes);
             this.IsLoaded = true;
-            OnDataLoaded.Invoke();
         }
         catch (Exception e)
         {
@@ -87,38 +135,38 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
     }
 
     // Load data from the specified file.
-    public virtual bool LoadData(string folderPath)
-    {
-        string filePath = folderPath + this.FileName;
-        if (this.IsLoaded)
-        {
-            // Data is already loaded.
-            return true;
-        }
+    //public virtual bool LoadData(string folderPath)
+    //{
+    //    string filePath = folderPath + this.FileName;
+    //    if (this.IsLoaded)
+    //    {
+    //        // Data is already loaded.
+    //        return true;
+    //    }
 
-        try
-        {
-            if (File.Exists(this.FileName))
-            {
-                // Read data from the file and load it into the container.
-                byte[] dataBytes = File.ReadAllBytes(filePath);
-                this.Data = ByteArrayToStructure<TData>(dataBytes);
-                this.IsLoaded = true;
-                return true;
-            }
-            else
-            {
-                // File not found.
-                return false;
-            }
-        }
-        catch (Exception e)
-        {
-            // Handle any exceptions that may occur during data loading.
-            Console.WriteLine($"Error loading data: {e.Message}");
-            return false;
-        }
-    }
+    //    try
+    //    {
+    //        if (File.Exists(this.FileName))
+    //        {
+    //            // Read data from the file and load it into the container.
+    //            byte[] dataBytes = File.ReadAllBytes(filePath);
+    //            this.Data = ByteArrayToStructure<TData>(dataBytes);
+    //            this.IsLoaded = true;
+    //            return true;
+    //        }
+    //        else
+    //        {
+    //            // File not found.
+    //            return false;
+    //        }
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        // Handle any exceptions that may occur during data loading.
+    //        Console.WriteLine($"Error loading data: {e.Message}");
+    //        return false;
+    //    }
+    //}
 
     public virtual void UnloadData()
     {
@@ -143,34 +191,7 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
 
 public interface ILoadableStructContainer
 {
-    public bool LoadData(string folderPath);
-    public IEnumerator LoadDataCoroutine(string folderPath);
+    public Task LoadData(string folderPath);
     public void UnloadData();
     public void SaveData(string folderPath);
 }
-
-//public class DataLoader : MonoBehaviour
-//{
-//    public string fileName = "your_file_path_here"; // Assign your file path in the Inspector.
-//    public LoadableDataContainer<GrassTileData> container;
-//    public UnityEvent OnDataLoaded;
-
-//    private void Start()
-//    {
-        
-//    }
-
-//    private IEnumerator LoadData()
-//    {
-//        yield return StartCoroutine(container.LoadDataCoroutine(fileName));
-
-//        if (container.IsLoaded)
-//        {
-//            OnDataLoaded.Invoke();
-//        }
-//        else
-//        {
-//            Debug.LogError("Failed to load data.");
-//        }
-//    }
-//}

@@ -1,0 +1,8 @@
+﻿Problemen:
+1.
+
+Todo:
+1. Coroutines vervangen door async
+	- Want de Task class voor Coroutines overlapt nu met die voor async
+	  en async kan op een andere thread runnen.
+3. 

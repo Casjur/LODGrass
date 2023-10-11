@@ -145,7 +145,7 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
     }
 
     // brushSize naar world size veranderen
-    public void PaintGrass(Vector3 brushWorldPosition, int brushSize, int grassTypeIndex )
+    public async void PaintGrass(Vector3 brushWorldPosition, int brushSize, int grassTypeIndex )
     {
         // Dont do anything if brush is not on terrain
         if (!this.Root.Tile.IsPointInTile(brushWorldPosition))
@@ -159,9 +159,7 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
             return;
 
         // Load nodes
-        // ...
-
-        // Wait for nodes to be loaded before painting
+        await LoadNodeAndUp(bottomNode);
 
         // Check whether or not the brush crosses into neighbouring tile
         Rect brushBounds = new Rect(brushWorldPosition.x, brushWorldPosition.y, brushSize, brushSize);
@@ -189,39 +187,12 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
 
             tex.Apply();
             bottomNode.Content.SaveData(this.FolderPath);
-
-            // Load this and all parent nodes
-            for(int mipLevel = 0; nodeToLoad)
-            while (nodeToLoad.Parent != null)
-            {
-                
-            }
-
-            this.LoadNodeAndUp(bottomNode);
-
         }
         else
         {
             // Brush crosses into a neighbouring tile
         }
-
-        while (node != null)
-        {
-            // Convert to UV space
-            Vector2 relativePosition = new Vector2(
-                brushWorldPosition.x - node.Tile.Tile.x,
-                brushWorldPosition.z - node.Tile.Tile.y
-                );
-            Vector2 uv = relativePosition / node.Tile.GetSize();
-            Vector2Int pixelCoord = Vector2Int.RoundToInt(node.Content.Data.Value.exampleTexture.width);
-            Texture2D test = new Texture2D(512, 512);
-            test.SetPixel()
-
-            node = node.;
-        }
-         
-
-
+       
 
         // Find the relative position
 

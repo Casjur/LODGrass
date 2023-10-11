@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
@@ -78,17 +79,16 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
 
     }
 
-    public async void LoadNodeAndUp(QuadTreeNode<TContainer> node)
+    public async Task LoadNodeAndUp(QuadTreeNode<TContainer> node) // List naar array aanpassen wnr Depth werkt
     {
         if (node == null)
             return;
 
+        // Load this node and up
         List<Task> loadingTasks = new List<Task>();
         while (node != null)
         {
-            loadingTasks.Add(
-                new Task(node.Content.LoadDataCoroutine(this.FolderPath))
-                );
+            loadingTasks.Add(node.Content.LoadData(this.FolderPath));
 
             node = node.Parent;
         }
@@ -96,16 +96,7 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
         if (loadingTasks.Count == 0)
             return;
 
-        foreach(Task task in loadingTasks)
-        {
-
-        }
-
-        // Load node
-        monoBehaviour.StartCoroutine(node.Content.LoadDataCoroutine(this.FolderPath));
-
-        // And up
-        LoadNodeAndUp(node.Parent);
+        await Task.WhenAll(loadingTasks);
     }
 }
 

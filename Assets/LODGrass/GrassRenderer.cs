@@ -107,11 +107,11 @@ public class GrassRenderer
         return true;
     }
 
-    private void LoadNodes(MonoBehaviour monoBehaviour, string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
+    private void LoadNodes(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
     {
         foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> tile in tilesToLoad)
         {
-            monoBehaviour.StartCoroutine(tile.Content.LoadDataCoroutine(folderPath));
+            tile.Content.LoadData(folderPath);
         }
     }
 
