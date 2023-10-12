@@ -11,22 +11,18 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
 {
     public string FolderPath { get; private set; }
 
-    private MonoBehaviour monoBehaviour; // This is here to start coroutines (for async loading)
-
     public List<QuadTreeNode<LoadableStructContainer<TData>>> LoadedNodes { get; protected set; }
+    protected List<QuadTreeNode<LoadableStructContainer<TData>>> nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<TData>>>();
 
-    public LoadableQuadTree(MonoBehaviour monoBehaviour, string folderPath) : base()
+
+    public LoadableQuadTree(string folderPath) : base()
     {
-        this.monoBehaviour = monoBehaviour;
-
         if (SetupFolder(folderPath))
             this.FolderPath = folderPath;
     }
 
-    public LoadableQuadTree(MonoBehaviour monoBehaviour, string folderPath, Vector3 position, float size) : base(position, size)
+    public LoadableQuadTree(string folderPath, Vector3 position, float size) : base(position, size)
     {
-        this.monoBehaviour = monoBehaviour;
-
         if (SetupFolder(folderPath))
             this.FolderPath = folderPath;
     }
@@ -64,14 +60,6 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
     {
         string fileName = QuadTreeNode<TContainer>.ConvertIndexToString(node.Index);
         node.BottomLeft.Content.SetFileName(fileName);
-    }
-
-    /// <summary>
-    /// Update the list of loaded nodes
-    /// </summary>
-    public virtual void UpdateLoaded()
-    {
-        // NOT IMPLEMENTED!
     }
 
     public void Insert()

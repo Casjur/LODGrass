@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -30,6 +31,8 @@ public class Grass : MonoBehaviour
     //
     [SerializeField]
     private Camera camera;
+    //[field: SerializeField]
+    //public const float SplitDistanceMultiplier = 2;
 
     // Contents
     public GrassQuadTree GrassData { get; private set; }
@@ -41,13 +44,12 @@ public class Grass : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        this.GrassRenderer = new GrassRenderer(this);
+        this.GrassRenderer = new GrassRenderer();
 
         string fullFolderPath = Application.dataPath + folderPath;
         Vector2 terrainSize = new Vector2(terrain.terrainData.size.x, terrain.terrainData.size.z);
 
         this.GrassData = new GrassQuadTree(
-            this,
             fullFolderPath, 
             terrain.GetPosition(), 
             terrainSize, 
@@ -69,8 +71,9 @@ public class Grass : MonoBehaviour
 
 public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileData>, GrassTileData>
 {
-    public GrassQuadTree(MonoBehaviour monoBehaviour, string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
-        : base(monoBehaviour, folderPath)
+    public const float SplitDistanceMultiplier = 2;
+    public GrassQuadTree(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
+        : base(folderPath)
     {
         float w_canvas = size.x;
         float h_canvas = size.y;
@@ -139,9 +142,80 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
     }
     
     
-    public override void UpdateLoaded()
+    //public override async Task UpdateLoaded()
+    //{
+    //    throw new InvalidOperationException("Requires Camera (position) to check for needed changes to loaded tiles");
+    //}
+
+    /// <summary>
+    /// Update the list of loaded nodes
+    /// </summary>
+    public async void UpdateLoaded(Vector3 cameraPosition)
     {
-        throw new InvalidOperationException("Requires Camera (position) to check for needed changes to loaded tiles");
+        this.nodesToLoad.Clear();
+
+        // Iterate over loaded nodes, and determine which need to be loaded or unloaded
+        foreach (QuadTreeNode<LoadableStructContainer<GrassTileData>> node in this.LoadedNodes)
+        {
+            UpdateNodeToLoad(node, cameraPosition);
+        }
+
+        // Load all found nodes that need loading
+        Task[] loadingTasks = new Task[this.nodesToLoad.Count];
+        for (int i = 0; i < this.nodesToLoad.Count; i++)
+        {
+            loadingTasks[i] = this.nodesToLoad[i].Content.LoadData(this.FolderPath);
+        }
+
+        await Task.WhenAll(loadingTasks);
+    }
+
+    private bool UpdateNodeToLoad(QuadTreeNode<LoadableStructContainer<GrassTileData>> node, Vector3 cameraPosition)
+    {
+        if (node == null)
+            return false;
+
+        float distance = Vector3.Distance(node.Tile.GetCenterPosition(), cameraPosition);
+
+        // Node might be too close
+        if (distance < SplitDistanceMultiplier * node.Tile.GetSize())
+        {
+            // Node is too close -> Split node
+            if (node.HasChildren)
+            {
+                UpdateNodeToLoad(node.BottomLeft, cameraPosition);
+                UpdateNodeToLoad(node.BottomRight, cameraPosition);
+                UpdateNodeToLoad(node.TopLeft, cameraPosition);
+                UpdateNodeToLoad(node.TopRight, cameraPosition);
+
+                return true;
+            }
+
+            this.nodesToLoad.Add(node);
+            return true;
+        }
+
+        if (node.Parent == null)
+        {
+            this.nodesToLoad.Add(node);
+            return true;
+        }
+
+        float distanceToParent = Vector3.Distance(node.Parent.Tile.GetCenterPosition(), cameraPosition);
+
+        // Node is too far away -> render parent
+        if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Tile.GetSize())
+        {
+            if (this.nodesToLoad.Contains(node.Parent))
+                return true;
+
+            this.nodesToLoad.Add(node.Parent);
+            return true;
+        }
+
+        // Node is fine as it is
+        this.nodesToLoad.Add(node);
+        return true;
     }
 
     // brushSize naar world size veranderen
@@ -181,7 +255,7 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
             {
                 for (int y = uv.y; y < tex.height && y < (uv.y + brushSize); y++)
                 {
-                    tex.SetPixel(x, y, new Color(1, 1, 1, 0));
+                    tex.SetPixel(x, y, new Color(1, 0, 0, 0));
                 }
             }
 
@@ -192,17 +266,87 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
         {
             // Brush crosses into a neighbouring tile
         }
-       
 
-        // Find the relative position
+        // Carry painted changes over to parents
+        QuadTreeNode<LoadableStructContainer<GrassTileData>> node = bottomNode;
+        for(int mipLevel = 1; node.Parent != null; mipLevel++)
+        {
+            // Go up
+            node = node.Parent;
+            
+            // Paint mipmap on corner
+            PaintTextureOnTexture(
+                node.Content.Data.Value.exampleTexture, 
+                bottomNode.Content.Data.Value.exampleTexture.GetPixels,)
 
-        // Paint on position
+            switch (relativePosition)
+            {
+                case QuadNodePosition.TopRight:
+                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 255));
+                case QuadNodePosition.TopLeft:
+                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 255));
+                case QuadNodePosition.BottomRight:
+                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 0));
+                case QuadNodePosition.BottomLeft:
+                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+                default:
+                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+            }
 
-        // Find relative position on child
+            node.Content.Data.Value.exampleTexture.
+        }
 
-        // Paint on position
+    }
 
-        // Up2 
+    private Texture2D PaintMipMapOnTexture(Texture2D target, Texture2D source, int mipLevel, QuadNodePosition relativePosition)
+    {
+        switch(relativePosition)
+        {
+            case QuadNodePosition.TopRight:
+                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 255));
+            case QuadNodePosition.TopLeft:
+                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 255));
+            case QuadNodePosition.BottomRight:
+                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 0));
+            case QuadNodePosition.BottomLeft:
+                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+            default:
+                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+        }
+    }
+
+    private Texture2D PaintTextureOnTexture(Texture2D target, Texture2D source, int mipLevel, Vector2Int position)
+    {
+        Color[] targetPixels = target.GetPixels();
+        Color[] sourcePixels = source.GetPixels();
+
+        int multiplier = (int)Math.Pow(2, mipLevel);
+
+        for (int y = 0; y < source.height; y++)
+        {
+            for (int x = 0; x < source.width; x++)
+            {
+                int targetIndex = y * target.width + x;
+                int sourceIndex = y * source.width * multiplier + x * multiplier; // Gaat sowieso overloaden
+
+                if (targetIndex < targetPixels.Length && sourceIndex < sourcePixels.Length)
+                {
+                    targetPixels[targetIndex] = sourcePixels[sourceIndex];
+                }
+                else
+                {
+                    Debug.Log("Source or target texture assumed to be 'too long'");
+                }
+
+                //target.SetPixel(
+                //    x + position.x, 
+                //    y + position.y, 
+                //    target.GetPixel(x << mipLevel, y, mipLevel)
+                //    );
+            }
+        }
+
+        return target;
     }
 
     private void PaintRect()

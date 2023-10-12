@@ -1,11 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class GrassRenderer
 {
-    private MonoBehaviour monoBehaviour; // This seems like a bad idea
-
     // VERGEET NIET DE ROOT AAN DE TILES TO LOAD TOE TE VOEGEN
 
     private List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
@@ -13,9 +12,8 @@ public class GrassRenderer
 
     private List<RenderTile> tilesToRender;
 
-    public GrassRenderer(MonoBehaviour monoBehaviour)
+    public GrassRenderer()
     {
-        this.monoBehaviour = monoBehaviour;
     }
 
     public void ProcessAndRender(Camera camera, GrassQuadTree tree) //List<QuadTree<GrassDataContainer>> tilesToRender)  //GrassQuadTree tree)
@@ -28,7 +26,7 @@ public class GrassRenderer
         DrawTilesToLoad();
 
         // Load tiles
-        LoadNodes(this.monoBehaviour, tree.FolderPath, this.nodesToLoad);
+        LoadNodes(tree.FolderPath, this.nodesToLoad);
         //this.monoBehaviour.StartCoroutine(LoadNodesAllAsync(tree.FolderPath, this.nodesToLoad));
         
         // Frustum cull loaded tiles
@@ -107,7 +105,7 @@ public class GrassRenderer
         return true;
     }
 
-    private void LoadNodes(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
+    private async Task LoadNodes(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
     {
         foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> tile in tilesToLoad)
         {
