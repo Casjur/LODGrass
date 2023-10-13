@@ -89,21 +89,21 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
         GenerateTopLeft();
     }
 
-    public void ExpandNode(int layers)
+    public void ExpandNode(int maxDepth, int layers)
     {
-        if (layers < 1)
+        if (this.Layer >= maxDepth || layers < 1)
             return;
 
         layers--;
 
         this.GenerateBottomLeft();
-        this.BottomLeft.ExpandNode(layers);
+        this.BottomLeft.ExpandNode(maxDepth, layers);
         this.GenerateBottomRight();
-        this.BottomRight.ExpandNode(layers);
+        this.BottomRight.ExpandNode(maxDepth, layers);
         this.GenerateTopLeft();
-        this.TopLeft.ExpandNode(layers);
+        this.TopLeft.ExpandNode(maxDepth, layers);
         this.GenerateTopRight();
-        this.TopRight.ExpandNode(layers);
+        this.TopRight.ExpandNode(maxDepth, layers);
     }
 
     public void DrawTiles(int depth)

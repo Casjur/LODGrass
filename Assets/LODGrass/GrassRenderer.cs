@@ -25,11 +25,13 @@ public class GrassRenderer
         UpdateNodesToLoad(camera.transform.position);
         DrawTilesToLoad();
 
-        // Load tiles
-        LoadNodes(tree.FolderPath, this.nodesToLoad);
+        // Load tiles (NIET IN Render class! Maar in Grass of QuadTree.
+        // Render moet het doen met de tiles die op dat moment geladen zijn.
+        //LoadNodes(tree.FolderPath, this.nodesToLoad);
         //this.monoBehaviour.StartCoroutine(LoadNodesAllAsync(tree.FolderPath, this.nodesToLoad));
         
         // Frustum cull loaded tiles
+        
 
         // Subdivide loadable tiles further into render tiles
         //List < RenderTile > tilesToRender = GenerateRenderTiles();
@@ -105,25 +107,11 @@ public class GrassRenderer
         return true;
     }
 
-    private async Task LoadNodes(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
+    private void GenerateRenderTiles(List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> loadedTiles)
     {
-        foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> tile in tilesToLoad)
-        {
-            tile.Content.LoadData(folderPath);
-        }
+        List<RenderTile> tilesToRender = new List<RenderTile>();
+
     }
-
-    private IEnumerator LoadNodesAllAsync(string folderPath, List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> tilesToLoad)
-    {
-        // NOT IMPLEMENTED. not sure if I should
-        yield return null;
-    }
-
-    //private void GenerateRenderTiles(List<QuadTreeNode<GrassDataContainer>> loadedTiles)
-    //{
-    //    List<RenderTile> tilesToRender = new List<RenderTile>();
-
-    //}
 
 
     public void DrawTilesToLoad()
@@ -135,8 +123,8 @@ public class GrassRenderer
     }
 }
 
-public class RenderTile
+public struct RenderTile
 {
-    public Texture2D? RenderTexture { get; private set; }
+    public Texture2D RenderTexture { get; private set; }
 
 }

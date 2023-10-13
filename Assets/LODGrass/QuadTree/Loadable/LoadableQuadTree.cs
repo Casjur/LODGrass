@@ -36,24 +36,24 @@ public class LoadableQuadTree<TContainer, TData> : QuadTree<TContainer>
         return true;
     }
 
-    public override void ExpandTree(int layers) // This should not work like this, but due to generic classes and access modifiers I cant make the nodes responsible for instantiating their own content/fileName...
+    public override void ExpandTree(int maxDepth, int layers) // This should not work like this, but due to generic classes and access modifiers I cant make the nodes responsible for instantiating their own content/fileName...
     {
-        ExpandNode(this.Root, layers);
+        ExpandNode(this.Root, maxDepth, layers);
     }
 
-    private void ExpandNode(QuadTreeNode<TContainer> node, int layers)
+    private void ExpandNode(QuadTreeNode<TContainer> node, int maxDepth, int layers)
     {
-        if (layers < 1 || node == null)
+        if (layers < 1 || node == null || node.Layer >= maxDepth)
             return;
 
         NameFileNode(node);
 
         layers--;
         node.GenerateAllChildren();
-        ExpandNode(node.BottomLeft, layers);
-        ExpandNode(node.BottomRight, layers);
-        ExpandNode(node.TopLeft, layers);
-        ExpandNode(node.TopRight, layers);
+        ExpandNode(node.BottomLeft, maxDepth, layers);
+        ExpandNode(node.BottomRight, maxDepth, layers);
+        ExpandNode(node.TopLeft, maxDepth, layers);
+        ExpandNode(node.TopRight, maxDepth, layers);
     }
 
     private void NameFileNode(QuadTreeNode<TContainer> node) // Wat kut zeg

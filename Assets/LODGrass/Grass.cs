@@ -59,19 +59,30 @@ public class Grass : MonoBehaviour
             );
 
         // Test expansion
-        this.GrassData.ExpandTree(this.GrassData.MaxDepth);
+        //this.GrassData.ExpandTree(this.GrassData.MaxDepth);
     }
 
     // Update is called once per frame
     void Update()
     {
         //this.GrassRenderer.ProcessAndRender(this, camera, this.GrassData);
+        this.GrassData.UpdateLoaded(camera.transform.position);
+    }
+
+    private void DrawLoadedTiles(List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> loadedNodes)
+    {
+        foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> node in loadedNodes)
+        {
+            
+        }
     }
 }
 
 public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileData>, GrassTileData>
 {
     public const float SplitDistanceMultiplier = 2;
+    public int DataMapWidth { get; private set; }
+
     public GrassQuadTree(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, double maxStoredPixels) 
         : base(folderPath)
     {
@@ -90,10 +101,15 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
 
         // Safeguard to avoid absurd memory/diskspace usage
         bool isTooLarge = GrassQuadTree.IsTreeMemoryTooLarge(maxStoredPixels, w_canvas, h_canvas, w_smallTile, w_smallTile, detailMapPixelWidth, detailMapPixelWidth);
-        //if (isTooLarge)
-        //    throw new Exception("Resulting Tile Tree will be too large!");
+        if (isTooLarge)
+        {
+            Debug.Log("Resulting tree will be too big!");
+            throw new Exception("Resulting Tile Tree will be too large!");
+        }
 
         this.MaxDepth = noLayers;
+        this.DataMapWidth = detailMapPixelWidth;
+
         this.GenerateRoot(position, w_rootSize);
     }
 
@@ -225,7 +241,7 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
         if (!this.Root.Tile.IsPointInTile(brushWorldPosition))
             return;
 
-        List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToPaint = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
+        //List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToPaint = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
 
         // Get the bottom node at position
         QuadTreeNode<LoadableStructContainer<GrassTileData>> bottomNode = this.GenerateToBottomTileAtPosition(brushWorldPosition);
@@ -235,12 +251,17 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
         // Load nodes
         await LoadNodeAndUp(bottomNode);
 
+        List<Task> savingTasks = new List<Task>();
+
         // Check whether or not the brush crosses into neighbouring tile
         Rect brushBounds = new Rect(brushWorldPosition.x, brushWorldPosition.y, brushSize, brushSize);
         
         if (bottomNode.Tile.IsRectOnlyInTile(brushBounds))
         { // Brush is only in this tile
-
+            // If new node, create initial data for tile
+            if (bottomNode.Content.Data == null)
+                bottomNode.Content.Data = new GrassTileData(this.DataMapWidth, this.DataMapWidth);
+            
             Texture2D tex = bottomNode.Content.Data.Value.exampleTexture;
 
             // Convert to UV space
@@ -255,67 +276,62 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
             {
                 for (int y = uv.y; y < tex.height && y < (uv.y + brushSize); y++)
                 {
-                    tex.SetPixel(x, y, new Color(1, 0, 0, 0));
+                    tex.SetPixel(x, y, Color.red);
                 }
             }
 
             tex.Apply();
-            bottomNode.Content.SaveData(this.FolderPath);
+            savingTasks.Add(bottomNode.Content.SaveData(this.FolderPath));
         }
         else
         {
             // Brush crosses into a neighbouring tile
+            return;
         }
 
         // Carry painted changes over to parents
         QuadTreeNode<LoadableStructContainer<GrassTileData>> node = bottomNode;
+        Texture2D source = bottomNode.Content.Data.Value.exampleTexture;
+
         for(int mipLevel = 1; node.Parent != null; mipLevel++)
         {
             // Go up
             node = node.Parent;
-            
-            // Paint mipmap on corner
-            PaintTextureOnTexture(
-                node.Content.Data.Value.exampleTexture, 
-                bottomNode.Content.Data.Value.exampleTexture.GetPixels,)
 
-            switch (relativePosition)
+            // If new node, create initial data for tile
+            if (node.Content.Data == null)
+                node.Content.Data = new GrassTileData(this.DataMapWidth, this.DataMapWidth);
+
+            // Paint mipmap on corner
+            Texture2D target = node.Content.Data.Value.exampleTexture;
+
+            switch (node.RelativePosition)
             {
                 case QuadNodePosition.TopRight:
-                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 255));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 255));
+                    break;
                 case QuadNodePosition.TopLeft:
-                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 255));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 255));
+                    break;
                 case QuadNodePosition.BottomRight:
-                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 0));
+                    break;
                 case QuadNodePosition.BottomLeft:
-                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    break;
                 default:
-                    return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    break;
             }
 
-            node.Content.Data.Value.exampleTexture.
+            // Save changes
+            savingTasks.Add(node.Content.SaveData(this.FolderPath));
         }
 
+        await Task.WhenAll(savingTasks);
     }
 
-    private Texture2D PaintMipMapOnTexture(Texture2D target, Texture2D source, int mipLevel, QuadNodePosition relativePosition)
-    {
-        switch(relativePosition)
-        {
-            case QuadNodePosition.TopRight:
-                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 255));
-            case QuadNodePosition.TopLeft:
-                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 255));
-            case QuadNodePosition.BottomRight:
-                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(255, 0));
-            case QuadNodePosition.BottomLeft:
-                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
-            default:
-                return PaintTextureOnTexture(target, source, mipLevel, new Vector2Int(0, 0));
-        }
-    }
-
-    private Texture2D PaintTextureOnTexture(Texture2D target, Texture2D source, int mipLevel, Vector2Int position)
+    private Texture2D PaintTextureOnTexture(ref Texture2D target, Texture2D source, int mipLevel, Vector2Int position)
     {
         Color[] targetPixels = target.GetPixels();
         Color[] sourcePixels = source.GetPixels();
@@ -327,7 +343,7 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
             for (int x = 0; x < source.width; x++)
             {
                 int targetIndex = y * target.width + x;
-                int sourceIndex = y * source.width * multiplier + x * multiplier; // Gaat sowieso overloaden
+                int sourceIndex = y * source.width * multiplier + x * multiplier; // Gaat sowieso buiten array range
 
                 if (targetIndex < targetPixels.Length && sourceIndex < sourcePixels.Length)
                 {
@@ -358,6 +374,11 @@ public class GrassQuadTree : LoadableQuadTree<LoadableStructContainer<GrassTileD
 public struct GrassTileData
 {
     public Texture2D exampleTexture;
+
+    public GrassTileData(int width, int height)
+    {
+        exampleTexture = new Texture2D(width, height);
+    }
 }
 
 public interface IGrassData

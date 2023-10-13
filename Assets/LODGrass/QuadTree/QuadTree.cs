@@ -28,12 +28,12 @@ public class QuadTree<TContent> //: QuadTreeBase<QuadTreeNode<TContent>>
         this.Root = new QuadTreeNode<TContent>(position, size);
     }
 
-    public virtual void ExpandTree(int layers)
+    public virtual void ExpandTree(int maxDepth, int layers)
     {
         if (layers < 1)
             return;
 
-        this.Root.ExpandNode(layers);
+        this.Root.ExpandNode(maxDepth, layers);
     }
 
     public QuadTreeNode<TContent> GetBottomNodeAtPosition(Vector3 position)

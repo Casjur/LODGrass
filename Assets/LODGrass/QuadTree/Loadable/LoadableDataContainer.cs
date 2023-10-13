@@ -16,7 +16,19 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
     where TData : struct
 {
     public string FileName { get; protected set; }
-    public TData? Data { get; protected set; }
+    private TData? data;
+    public TData? Data 
+    {
+        get 
+        {
+            return data;
+        }
+        set
+        {
+            data = value;
+        }
+    }
+
     public bool IsLoaded { get; protected set; } = false;
 
     public LoadableStructContainer(string fileName)
@@ -40,56 +52,45 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
     }
 
     /// <summary>
-    /// !!! NOT IMPLEMENTED !!!
     /// Saves any data in this instanced container to disk
     /// </summary>
     /// <param name="folderPath"></param>
-    public virtual void SaveData(string folderPath)
+    public virtual async Task SaveData(string folderPath)
     {
+        // Serialize the struct to a byte array.
+        byte[] dataBytes = StructureToByteArray(this.Data.Value);
 
+        // Create the file path.
+        string filePath = Path.Combine(folderPath, this.FileName);
+
+        // Write the byte array to the file.
+        try
+        {
+            await File.WriteAllBytesAsync(filePath, dataBytes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error saving data: " + e.Message);
+        }
     }
 
-    //public virtual IEnumerator LoadData(string folderPath)
-    //{
-    //    yield return null; // Yield control back to the main thread.
-
-    //    if (this.IsLoaded)
-    //    {
-    //        // Data is already loaded.
-    //        yield break;
-    //    }
-
-    //    UnityWebRequest www = UnityWebRequest.Get("file://" + folderPath + this.FileName); // Dont know if `this` can be used in a coroutine that was started from another class
-
-    //    yield return www.SendWebRequest();
-
-    //    if (www.result != UnityWebRequest.Result.Success)
-    //    {
-    //        Debug.LogError("Error loading file: " + www.error);
-    //        yield break;
-    //    }
-
-    //    byte[] dataBytes = www.downloadHandler.data;
-
-    //    try
-    //    {
-    //        // Deserialize the struct.
-    //        this.Data = ByteArrayToStructure<TData>(dataBytes);
-    //        this.IsLoaded = true;
-    //        OnDataLoaded.Invoke();
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        // Handle any exceptions that may occur during deserialization.
-    //        Debug.LogError($"Error deserializing data: {e.Message}");
-    //    }
-    //}
-
-    public async Task<string> Bla()
+    // Helper method to convert a struct to a byte array.
+    private static byte[] StructureToByteArray(TData data)
     {
-        string foo = "bar";
-        await Task.Delay(10);
-        return foo;
+        int size = Marshal.SizeOf(data);
+        byte[] byteArray = new byte[size];
+
+        GCHandle handle = GCHandle.Alloc(byteArray, GCHandleType.Pinned);
+        try
+        {
+            Marshal.StructureToPtr(data, handle.AddrOfPinnedObject(), false);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        return byteArray;
     }
 
     public virtual async Task LoadData(string folderPath)
@@ -134,46 +135,6 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
         }
     }
 
-    // Load data from the specified file.
-    //public virtual bool LoadData(string folderPath)
-    //{
-    //    string filePath = folderPath + this.FileName;
-    //    if (this.IsLoaded)
-    //    {
-    //        // Data is already loaded.
-    //        return true;
-    //    }
-
-    //    try
-    //    {
-    //        if (File.Exists(this.FileName))
-    //        {
-    //            // Read data from the file and load it into the container.
-    //            byte[] dataBytes = File.ReadAllBytes(filePath);
-    //            this.Data = ByteArrayToStructure<TData>(dataBytes);
-    //            this.IsLoaded = true;
-    //            return true;
-    //        }
-    //        else
-    //        {
-    //            // File not found.
-    //            return false;
-    //        }
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        // Handle any exceptions that may occur during data loading.
-    //        Console.WriteLine($"Error loading data: {e.Message}");
-    //        return false;
-    //    }
-    //}
-
-    public virtual void UnloadData()
-    {
-        this.Data = null;
-        Resources.UnloadUnusedAssets(); // Probably a bad idea if multiple are unloaded
-    }
-
     // Helper method to convert a byte array to a struct.
     private static T ByteArrayToStructure<T>(byte[] bytes) where T : struct
     {
@@ -187,11 +148,18 @@ public class LoadableStructContainer<TData> : ILoadableStructContainer // Maybe 
             handle.Free();
         }
     }
+
+    public virtual void UnloadData()
+    {
+        this.Data = null;
+        this.IsLoaded = false;
+        Resources.UnloadUnusedAssets(); // Probably a bad idea if multiple are unloaded
+    }
 }
 
 public interface ILoadableStructContainer
 {
     public Task LoadData(string folderPath);
     public void UnloadData();
-    public void SaveData(string folderPath);
+    public Task SaveData(string folderPath);
 }
