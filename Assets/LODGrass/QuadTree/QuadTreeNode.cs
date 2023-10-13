@@ -124,3 +124,45 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
     }
 }
 
+
+public class LoadableQT<TContent> : QTAbstract<LoadableQNode<TContent>, TContent>
+{
+
+}
+
+public class LoadableQNode<TContent> : QNodeAbstract<TContent>
+{
+
+}
+
+public class QT<TContent> : QTAbstract<QNode<TContent>, TContent>
+{
+
+}
+
+public class QNode<TContent> : QNodeAbstract<TContent>
+{
+
+}
+
+public abstract class QTAbstract<TNode, TContent>
+    where TNode : QNodeAbstract<TContent>
+{
+    public TNode parent;
+
+    public TNode ne;
+    public TNode nw;
+    public TNode se;
+    public TNode sw;
+
+    public QTAbstract()
+    {
+    }
+}
+
+public abstract class QNodeAbstract<TContent>
+{
+    TContent content;
+}
+
+
