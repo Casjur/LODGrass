@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class QuadTreeNode<TContent> //: IQuadTreeNode
-    where TContent : class
 {
     public QuadTreeNode<TContent> Parent { get; protected set; }
 
@@ -125,29 +124,101 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
 }
 
 
-public class LoadableQT<TContent> : QTAbstract<LoadableQNode<TContent>, TContent>
+public class LoadableFlexQT<TContent>
+    : MinimalQuadTreeAbstract<LoadableFlexQTNode<TContent>, TContent>
+{
+    public override void bla()
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class LoadableFlexQTNode<TContent> 
+    : FlexQuadTreeNode<TContent, LoadableFlexQTNode<TContent>>
+{
+    public LoadableFlexQTNode(FlexQuadTreeNode<TContent, LoadableFlexQTNode<TContent>> parent, QuadNodePosition relativePosition) : base(parent, relativePosition)
+    {
+    }
+}
+
+public class QT<TContent> 
+    : FlexQuadTreeAbstract<QTNode<TContent>, TContent>
 {
 
 }
 
-public class LoadableQNode<TContent> : QNodeAbstract<TContent>
+public class QTNode<TContent> 
+    : FlexQuadTreeNodeAbstract<TContent, QTNode<TContent>>
 {
 
 }
 
-public class QT<TContent> : QTAbstract<QNode<TContent>, TContent>
+//public class FlexQuadTree<TContent> 
+//    : FlexQTAbstract
+//{
+    
+//}
+
+public abstract class MinimalQuadTree<TNode, TContent>
+    where TNode : MinimalQuadTreeNode<TContent, TNode>
 {
+    public TNode root;
+    
+    public MinimalQuadTree()
+    {
+    }
+
+    public abstract void bla();
 
 }
 
-public class QNode<TContent> : QNodeAbstract<TContent>
+public class MinimalQuadTreeNode<TContent, TNode> : MinimalQuadTreeNodeAbstract<TContent, TNode>
+    where TNode : MinimalQuadTreeNode<TContent, TNode>
 {
+    public MinimalQuadTreeNode(TNode parent) : base(parent)
+    {
+
+    }
+
+    public override void GenerateAllChildren()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void SetNE(TNode child)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void SetNW(TNode child)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void SetSE(TNode child)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void SetSW(TNode child)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+
+public abstract class MinimalQuadTreeAbstract<TNode, TContent>
+    where TNode : MinimalQuadTreeNodeAbstract<TContent, TNode>
+{
+    public TNode root;
 
 }
 
-public abstract class QTAbstract<TNode, TContent>
-    where TNode : QNodeAbstract<TContent>
+public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
+    where TNode : MinimalQuadTreeNodeAbstract<TContent, TNode>
 {
+    public TContent content;
+
     public TNode parent;
 
     public TNode ne;
@@ -155,14 +226,29 @@ public abstract class QTAbstract<TNode, TContent>
     public TNode se;
     public TNode sw;
 
-    public QTAbstract()
+    //public UInt32 Index { get; protected set; } // Describes Layer and RelativePosition, so maybe redundant
+    //public int Layer { get; protected set; }
+    //public QuadNodePosition RelativePosition { get; protected set; }
+    public bool HasChildren { get; protected set; }
+
+    public MinimalQuadTreeNodeAbstract(TNode parent, QuadNodePosition relativePosition)
     {
+        this.parent = parent;
+        //this.RelativePosition = relativePosition;
+    }
+
+    public abstract void GenerateAllChildren();
+    public abstract void SetNE(TNode node);
+    public abstract void SetNW(TNode node);
+    public abstract void SetSE(TNode node);
+    public abstract void SetSW(TNode node);
+    
+    public int GetDepth()
+    {
+        if (this.parent == null)
+            return 0;
+        
+        return 1 + this.parent.GetDepth();
     }
 }
-
-public abstract class QNodeAbstract<TContent>
-{
-    TContent content;
-}
-
 

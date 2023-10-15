@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class QuadTree<TContent> //: QuadTreeBase<QuadTreeNode<TContent>> 
-    where TContent : class
 {
     public QuadTreeNode<TContent> Root { get; protected set; }
 
