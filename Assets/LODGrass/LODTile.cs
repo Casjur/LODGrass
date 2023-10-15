@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LODTile
+public class Rect3D
 {
     public static readonly Vector3 Top = new Vector3(0, 0, 1);
     public static readonly Vector3 Bottom = new Vector3(0, 0, -1);
@@ -21,14 +21,14 @@ public class LODTile
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
 
-    public LODTile(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
+    public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
     { 
         Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
         Vector3 position = parentPosition + relativePosition;
         this.Tile = new Rect(position.x, position.z, size, size);
     }
 
-    public LODTile(Vector3 position, float size)
+    public Rect3D(Vector3 position, float size)
     {
         this.Tile = new Rect(
             new Vector2(position.x, position.z),
@@ -121,6 +121,11 @@ public class LODTile
             color
             );
     }
+}
+
+public interface IQuadrantBounds
+{
+
 }
 
 //public class GrassLODTile : LODTile

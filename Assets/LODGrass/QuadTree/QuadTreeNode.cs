@@ -12,7 +12,7 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
     public QuadTreeNode<TContent> TopRight { get; protected set; }
     public QuadTreeNode<TContent> TopLeft { get; protected set; }
 
-    public LODTile Tile { get; set; }
+    public Rect3D Tile { get; set; }
 
     public TContent Content { get; protected set; }
 
@@ -29,7 +29,7 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
         //UpdateTreeDepth(this.Layer);
         this.RelativePosition = relativePosition;
 
-        this.Tile = new LODTile(parent.Tile.GetPosition(), relativePosition, size);
+        this.Tile = new Rect3D(parent.Tile.GetPosition(), relativePosition, size);
 
         GenerateIndex(parent.Index, this.Layer, relativePosition);
     }
@@ -42,7 +42,7 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
     public QuadTreeNode(Vector3 position, float size)
     {
         this.Parent = null;
-        this.Tile = new LODTile(position, size);
+        this.Tile = new Rect3D(position, size);
 
         this.Layer = 0;
         this.Index = 0;
@@ -124,19 +124,16 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
 }
 
 
-public class LoadableFlexQT<TContent>
-    : MinimalQuadTreeAbstract<LoadableFlexQTNode<TContent>, TContent>
+public class LoadableMQT<TContent>
+    : MinimalQuadTreeAbstract<LoadableMQTNode<TContent>, TContent>
 {
-    public override void bla()
-    {
-        throw new NotImplementedException();
-    }
+
 }
 
-public class LoadableFlexQTNode<TContent> 
-    : FlexQuadTreeNode<TContent, LoadableFlexQTNode<TContent>>
+public class LoadableMQTNode<TContent> 
+    : MinimalQuadTreeNodeAbstract<TContent, LoadableMQTNode<TContent>>
 {
-    public LoadableFlexQTNode(FlexQuadTreeNode<TContent, LoadableFlexQTNode<TContent>> parent, QuadNodePosition relativePosition) : base(parent, relativePosition)
+    public LoadableMQTNode(LoadableMQTNode<TContent> parent) : base(parent, relativePosition)
     {
     }
 }
@@ -167,9 +164,6 @@ public abstract class MinimalQuadTree<TNode, TContent>
     public MinimalQuadTree()
     {
     }
-
-    public abstract void bla();
-
 }
 
 public class MinimalQuadTreeNode<TContent, TNode> : MinimalQuadTreeNodeAbstract<TContent, TNode>
@@ -211,7 +205,18 @@ public abstract class MinimalQuadTreeAbstract<TNode, TContent>
     where TNode : MinimalQuadTreeNodeAbstract<TContent, TNode>
 {
     public TNode root;
+    
+    public MinimalQuadTreeAbstract()
+    {
 
+    }
+
+    public MinimalQuadTreeAbstract(Rect3D bounds)
+    {
+        this.root = GenerateRoot(bounds);
+    }
+
+    public abstract TNode GenerateRoot(Rect3D bounds);
 }
 
 public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
@@ -226,15 +231,17 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     public TNode se;
     public TNode sw;
 
+    public readonly Rect3D bounds; // Replace with a generic/abstract/interface for 
+
     //public UInt32 Index { get; protected set; } // Describes Layer and RelativePosition, so maybe redundant
     //public int Layer { get; protected set; }
     //public QuadNodePosition RelativePosition { get; protected set; }
     public bool HasChildren { get; protected set; }
 
-    public MinimalQuadTreeNodeAbstract(TNode parent, QuadNodePosition relativePosition)
+    public MinimalQuadTreeNodeAbstract(TNode parent, Rect3D bounds)
     {
         this.parent = parent;
-        //this.RelativePosition = relativePosition;
+        this.bounds = bounds;
     }
 
     public abstract void GenerateAllChildren();
