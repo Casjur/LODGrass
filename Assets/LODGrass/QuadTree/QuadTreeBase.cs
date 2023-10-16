@@ -30,7 +30,7 @@ public abstract class QuadTreeBase<TNode> : IQuadTree
 //(probably better if this is inside the class, 
 // but than it can not be properly accessed by another class, 
 // because it is generic) 
-public enum QuadNodePosition { BottomLeft = 0, BottomRight = 1, TopLeft = 2, TopRight = 3 };
+public enum QuadNodePosition { SW = 0, SE = 1, NW = 2, NE = 3 };
 
 public abstract class QuadTreeNodeBase<TContent, TNode> : IQuadTreeNode 
     where TContent : class 
