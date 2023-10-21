@@ -123,15 +123,26 @@ public class QuadTreeNode<TContent> //: IQuadTreeNode
     }
 }
 
-public class GrassMQT : LoadableMQT<GrassTileData>
+public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrassMQTNode>
 {
-    public GrassMQTNode GetBottomNodeAtPosition(Vector3 position)
+    public LoadableGrassMQT()
+    { }
+
+    public LoadableGrassMQT(Rect3D bounds) : base(bounds)
+    { }
+
+    public override LoadableGrassMQTNode GenerateRoot(Rect3D bounds)
+    {
+        return new LoadableGrassMQTNode(bounds);
+    }
+
+    public LoadableGrassMQTNode GetBottomNodeAtPosition(Vector3 position)
     {
         // Dont do anything if position is not on terrain
-        if (!this.Root.Tile.IsPointInTile(position))
+        if (!this.Root.Bounds.IsPointInTile(position))
             return null;
 
-        GrassMQTNode node = this.Root;
+        LoadableGrassMQTNode node = this.Root;
 
         // Find bottom node on position
         while (node != null)
@@ -139,28 +150,28 @@ public class GrassMQT : LoadableMQT<GrassTileData>
             if (!node.HasChildren)
                 return node;
 
-            QuadNodePosition relativePosition = node.Tile.GetRelativePositionInTile(position);
+            QuadNodePosition relativePosition = node.Bounds.GetRelativePositionInTile(position);
             switch (relativePosition)
             {
                 case QuadNodePosition.NE:
-                    if (node.BottomLeft == null)
+                    if (node.NE == null)
                         return node;
-                    node = node.BottomLeft;
+                    node = node.NE;
                     break;
-                case QuadNodePosition.BottomRight:
-                    if (node.BottomRight == null)
+                case QuadNodePosition.NW:
+                    if (node.NW == null)
                         return node;
-                    node = node.BottomRight;
+                    node = node.NW;
                     break;
-                case QuadNodePosition.TopLeft:
-                    if (node.TopLeft == null)
+                case QuadNodePosition.SE:
+                    if (node.SE == null)
                         return node;
-                    node = node.TopLeft;
+                    node = node.SE;
                     break;
-                case QuadNodePosition.TopRight:
-                    if (node.TopRight == null)
+                case QuadNodePosition.SW:
+                    if (node.SW == null)
                         return node;
-                    node = node.TopRight;
+                    node = node.SW;
                     break;
             }
         }
@@ -169,41 +180,91 @@ public class GrassMQT : LoadableMQT<GrassTileData>
     }
 }
 
-public class GrassMQTNode : LoadableMQTNode<GrassTileData>
+public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, LoadableGrassMQTNode>
 {
-    public GrassMQTNode(Rect3D bounds) : base(bounds)
+    public LoadableGrassMQTNode(Rect3D bounds) 
+        : base(bounds)
+    { }
+
+    public LoadableGrassMQTNode(LoadableGrassMQTNode parent, QuadNodePosition relativePosition) 
+        : base(parent, relativePosition)
+    { }
+
+    public override void GenerateNE()
     {
+        this.NE = new LoadableGrassMQTNode(this, QuadNodePosition.NE);
     }
 
-    public GrassMQTNode(LoadableMQTNode<GrassTileData> parent, Rect3D bounds, QuadNodePosition relativePosition) : base(parent, bounds, relativePosition)
+    public override void GenerateNW()
     {
+        this.NW = new LoadableGrassMQTNode(this, QuadNodePosition.NW);
+    }
+
+    public override void GenerateSE()
+    {
+        this.SE = new LoadableGrassMQTNode(this, QuadNodePosition.SE);
+    }
+
+    public override void GenerateSW()
+    {
+        this.SW = new LoadableGrassMQTNode(this, QuadNodePosition.SW);
     }
 }
 
-public class LoadableMQT<TContent>
-    : MinimalQuadTreeAbstract<LoadableMQTNode<TContent>, TContent>
+public abstract class LoadableMQTAbstract<TContent, TLoadableNode>
+    : MinimalQuadTreeAbstract<TContent, TLoadableNode>
+    where TLoadableNode : LoadableMQTNodeAbstract<TContent, TLoadableNode>
 {
+    public List<LoadableMQTNodeAbstract<TContent, TLoadableNode>> LoadedNodes { get; protected set; }
+    public LoadableMQTAbstract()
+    { }
 
+    public LoadableMQTAbstract(Rect3D bounds) : base(bounds)
+    { }
+
+    public async Task LoadNodeAndUp(QuadTreeNode<TContainer> node) // List naar array aanpassen wnr Depth werkt
+    {
+        if (node == null)
+            return;
+
+        // Load this node and up
+        List<Task> loadingTasks = new List<Task>();
+        while (node != null)
+        {
+            loadingTasks.Add(node.Content.LoadData(this.FolderPath));
+
+            node = node.Parent;
+        }
+
+        if (loadingTasks.Count == 0)
+            return;
+
+        await Task.WhenAll(loadingTasks);
+    }
 }
 
-public class LoadableMQTNode<TContent> 
-    : MinimalQuadTreeNodeAbstract<TContent, LoadableMQTNode<TContent>>
+public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode> 
+    : MinimalQuadTreeNodeAbstract<TContent, TLoadableNode>
+    where TLoadableNode : LoadableMQTNodeAbstract<TContent, TLoadableNode>
 {
-    public UInt32 Index { get; private set; } // Describes Layer and RelativePosition, so maybe redundant
     public int Layer { get; protected set; }
     public QuadNodePosition RelativePosition { get; protected set; }
+    public UInt32 Index { get; private set; } // Describes Layer and RelativePosition, so maybe redundant
     public string FileName { get; private set; }
 
-    public LoadableMQTNode(Rect3D bounds) 
+    public LoadableMQTNodeAbstract(Rect3D bounds) 
         : base(bounds)
     {
+        this.Layer = this.GetDepth();
         this.Index = 0;
     }
 
-    public LoadableMQTNode(LoadableMQTNode<TContent> parent, Rect3D bounds, QuadNodePosition relativePosition) 
-        : base(parent, bounds)
+    public LoadableMQTNodeAbstract(TLoadableNode parent, QuadNodePosition relativePosition) 
+        : base(parent, relativePosition)
     {
-        GenerateIndex(parent.Index, this.GetDepth(), relativePosition);
+        this.Layer = this.GetDepth();
+        GenerateIndex(parent.Index, this.Layer, relativePosition);
+        this.FileName = ConvertIndexToString(this.Index);
     }
 
     protected void GenerateIndex(UInt32 parentIndex, int layer, QuadNodePosition relativePosition)
@@ -211,7 +272,7 @@ public class LoadableMQTNode<TContent>
         this.Index = ((uint)relativePosition << (layer * 2)) | parentIndex;
     }
 
-    public virtual string GetFileName()
+    public string GetFileName()
     {
         return ConvertIndexToString(this.Index);
     }
@@ -221,8 +282,6 @@ public class LoadableMQTNode<TContent>
         byte[] bytes = BitConverter.GetBytes(index);
         return Convert.ToBase64String(bytes);
     }
-
-    
 
     //public void ExpandNode(int maxDepth, int layers)
     //{
@@ -257,49 +316,20 @@ public class LoadableMQTNode<TContent>
 
         this.Bounds.DrawTile(Color.blue);
     }
-
-    public override void GenerateNW()
-    {
-        Rect3D childBounds = new Rect3D(this.Bounds.GetPosition(), QuadNodePosition.NW, this.Bounds.GetSize());
-        this.NW = new LoadableMQTNode<TContent>(this, childBounds, QuadNodePosition.NW);
-
-        this.HasChildren = true;
-    }
-
-    public override void GenerateNE()
-    {
-        Rect3D childBounds = new Rect3D(this.Bounds.GetPosition(), QuadNodePosition.NE, this.Bounds.GetSize());
-        this.NE = new LoadableMQTNode<TContent>(this, childBounds, QuadNodePosition.NE);
-
-        this.HasChildren = true;
-    }
-
-    public override void GenerateSE()
-    {
-        Rect3D childBounds = new Rect3D(this.Bounds.GetPosition(), QuadNodePosition.SE, this.Bounds.GetSize());
-        this.SE = new LoadableMQTNode<TContent>(this, childBounds, QuadNodePosition.SE);
-
-        this.HasChildren = true;
-    }
-
-    public override void GenerateSW()
-    {
-        Rect3D childBounds = new Rect3D(this.Bounds.GetPosition(), QuadNodePosition.SW, this.Bounds.GetSize());
-        this.SW = new LoadableMQTNode<TContent>(this, childBounds, QuadNodePosition.SW);
-
-        this.HasChildren = true;
-    }
 }
 
 
-public abstract class MinimalQuadTreeAbstract<TNode, TContent>
+public abstract class MinimalQuadTreeAbstract<TContent, TNode>
     where TNode : MinimalQuadTreeNodeAbstract<TContent, TNode>
 {
     public TNode Root { get; private set; }
+    
+    public int MaxDepth { get; protected set; }
+
+    // Misschien huidige depth toevoegen
 
     public MinimalQuadTreeAbstract()
     {
-
     }
 
     public MinimalQuadTreeAbstract(Rect3D bounds)
@@ -331,16 +361,23 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
         this.Bounds = bounds;
     }
 
-    public MinimalQuadTreeNodeAbstract(TNode parent, Rect3D bounds)
+    public MinimalQuadTreeNodeAbstract(TNode parent, QuadNodePosition relativePosition)
     {
         this.Parent = parent;
-        this.Bounds = bounds;
+        GenerateBoundsFromParent(parent.Bounds, relativePosition);
+
+        this.Parent.HasChildren = true; // Dit is een kut idee, maar dan vergeet je het niet...
     }
 
     public abstract void GenerateNE();
     public abstract void GenerateNW();
     public abstract void GenerateSE();
     public abstract void GenerateSW();
+
+    private void GenerateBoundsFromParent(Rect3D parentBounds, QuadNodePosition relativePosition)
+    {
+        this.Bounds = new Rect3D(parentBounds.GetPosition(), relativePosition, parentBounds.GetSize());
+    }
     
     public int GetDepth()
     {
@@ -351,3 +388,9 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     }
 }
 
+
+// Indicies of possible quadrant positions 
+//(probably better if this is inside the class, 
+// but than it can not be properly accessed by another class, 
+// because it is generic) 
+public enum QuadNodePosition { SW = 0, SE = 1, NW = 2, NE = 3 };
