@@ -37,11 +37,11 @@ public class Grass : MonoBehaviour
     //public const float SplitDistanceMultiplier = 2;
 
     // Contents
-    public GrassQuadTree GrassData { get; private set; }
+    public LoadableGrassMQT GrassData { get; private set; }
     private GrassRenderer GrassRenderer;
 
     //
-    public readonly List<GrassTileData> GrassList = new List<GrassTileData>(); 
+    public readonly List<GrassTileData> LoadedGrass = new List<GrassTileData>(); 
 
     // Start is called before the first frame update
     void Start()
@@ -51,13 +51,12 @@ public class Grass : MonoBehaviour
         string fullFolderPath = Application.dataPath + folderPath;
         Vector2 terrainSize = new Vector2(terrain.terrainData.size.x, terrain.terrainData.size.z);
 
-        this.GrassData = new GrassQuadTree(
+        this.GrassData = new LoadableGrassMQT(
             fullFolderPath, 
             terrain.GetPosition(), 
             terrainSize, 
             detailMapDensity, 
-            detailMapPixelWidth, 
-            maxStoredPixels
+            detailMapPixelWidth
             );
 
         // Test expansion
@@ -76,16 +75,15 @@ public class Grass : MonoBehaviour
         this.GrassData.UpdateLoaded(camera.transform.position);
     }
 
-    private void DrawLoadedTiles(List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> loadedNodes)
+    //
+    private void DrawLoadedTiles(List<LoadableGrassMQTNode> loadedNodes)
     {
-        foreach(QuadTreeNode<LoadableStructContainer<GrassTileData>> node in loadedNodes)
+        foreach(LoadableGrassMQTNode node in loadedNodes)
         {
             GameObject.CreatePrimitive(PrimitiveType.Quad);
         }
     }
 }
-
-
 
 public class GrassTileData
 {
@@ -95,9 +93,4 @@ public class GrassTileData
     {
         exampleTexture = new Texture2D(width, height);
     }
-}
-
-public interface IGrassData
-{
-
 }

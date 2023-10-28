@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrassMQTNode>
 {
@@ -334,14 +336,62 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         this.SW = new LoadableGrassMQTNode(this, QuadNodePosition.SW);
     }
 
-    public override Task LoadContent(string folderPath)
+    public async override Task LoadContent(string folderPath)
     {
-        throw new NotImplementedException();
+        string filePath = Path.Combine(folderPath, this.FileName);
+
+        if (File.Exists(filePath))
+        {
+            byte[] fileData = null;
+            await Task.Run(() =>
+            {
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
+                {
+                    fileData = new byte[fileStream.Length];
+                    fileStream.Read(fileData, 0, (int)fileStream.Length);
+                }
+            });
+
+            if (fileData != null)
+            {
+                Texture2D texture = new Texture2D(2, 2); // Set the initial size to your preference
+                bool loadSuccess = texture.LoadImage(fileData);
+
+                if (loadSuccess)
+                {
+                    return texture;
+                }
+                else
+                {
+                    Debug.LogError("Failed to load texture from file.");
+                    return null;
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError("File not found: " + filePath);
+        }
+        return null;
     }
 
-    public override Task SaveContent(string folderPath)
+    public async override Task SaveContent(string folderPath)
     {
-        throw new NotImplementedException();
+        // Serialize the struct to a byte array.
+        byte[] dataBytes = StructureToByteArray(this.Data.Value);
+
+        // Create the file path.
+        string filePath = Path.Combine(folderPath, this.FileName);
+
+        // Write the byte array to the file.
+        try
+        {
+            await File.WriteAllBytesAsync(filePath, dataBytes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error saving data: " + e.Message);
+        }
     }
 
     public override Task UnloadContent()

@@ -30,6 +30,8 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
     where TContent : class
     where TLoadableNode : LoadableMQTNodeAbstract<TContent, TLoadableNode>
 {
+    public bool IsLoaded { get; protected set; }
+
     public int Layer { get; protected set; }
     public QuadNodePosition RelativePosition { get; protected set; }
     public UInt32 Index { get; private set; } // Describes Layer and RelativePosition, so maybe redundant

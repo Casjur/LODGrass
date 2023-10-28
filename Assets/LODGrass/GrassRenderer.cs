@@ -7,7 +7,7 @@ public class GrassRenderer
 {
     // VERGEET NIET DE ROOT AAN DE TILES TO LOAD TOE TE VOEGEN
 
-    private List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
+    private List<LoadableGrassMQTNode> nodesToLoad = new List<LoadableGrassMQTNode>();
     private const float SplitDistanceMultiplier = 2;
 
     private List<RenderTile> tilesToRender;
@@ -16,7 +16,7 @@ public class GrassRenderer
     {
     }
 
-    public void ProcessAndRender(Camera camera, GrassQuadTree tree) //List<QuadTree<GrassDataContainer>> tilesToRender)  //GrassQuadTree tree)
+    public void ProcessAndRender(Camera camera, LoadableGrassMQT tree) //List<QuadTree<GrassDataContainer>> tilesToRender)  //GrassQuadTree tree)
     {
         if (nodesToLoad.Count == 0)
             this.nodesToLoad.Add(tree.Root);
@@ -48,34 +48,34 @@ public class GrassRenderer
     {
         Debug.Log("noNodesToLoad: " + this.nodesToLoad.Count);
 
-        QuadTreeNode<LoadableStructContainer<GrassTileData>>[] nodesToLoadCopy = new QuadTreeNode<LoadableStructContainer<GrassTileData>>[this.nodesToLoad.Count];
+        LoadableGrassMQTNode[] nodesToLoadCopy = new LoadableGrassMQTNode[this.nodesToLoad.Count];
         this.nodesToLoad.CopyTo(nodesToLoadCopy);
-        this.nodesToLoad = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>(); // Bad idea (extra costs)
+        this.nodesToLoad = new List<LoadableGrassMQTNode>(); // Bad idea (extra costs)
 
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
-        foreach (QuadTreeNode<LoadableStructContainer<GrassTileData>> node in nodesToLoadCopy)
+        foreach (LoadableGrassMQTNode node in nodesToLoadCopy)
         {
             UpdateNodeToLoad(node, cameraPosition);
         }
     }
 
-    private bool UpdateNodeToLoad(QuadTreeNode<LoadableStructContainer<GrassTileData>> node, Vector3 cameraPosition)
+    private bool UpdateNodeToLoad(LoadableGrassMQTNode node, Vector3 cameraPosition)
     {
         if (node == null)
             return false;
 
-        float distance = Vector3.Distance(node.Tile.GetCenterPosition(), cameraPosition);
+        float distance = Vector3.Distance(node.Bounds.GetCenterPosition(), cameraPosition);
 
         // Node might be too close
-        if (distance < SplitDistanceMultiplier * node.Tile.GetSize())
+        if (distance < SplitDistanceMultiplier * node.Bounds.GetSize())
         {
             // Node is too close -> Split node
             if (node.HasChildren)
             {
-                UpdateNodeToLoad(node.BottomLeft, cameraPosition);
-                UpdateNodeToLoad(node.BottomRight, cameraPosition);
-                UpdateNodeToLoad(node.TopLeft, cameraPosition);
-                UpdateNodeToLoad(node.TopRight, cameraPosition);
+                UpdateNodeToLoad(node.NE, cameraPosition);
+                UpdateNodeToLoad(node.NW, cameraPosition);
+                UpdateNodeToLoad(node.SE, cameraPosition);
+                UpdateNodeToLoad(node.SW, cameraPosition);
 
                 return true;
             }
@@ -90,10 +90,10 @@ public class GrassRenderer
             return true;
         }
 
-        float distanceToParent = Vector3.Distance(node.Parent.Tile.GetCenterPosition(), cameraPosition);
+        float distanceToParent = Vector3.Distance(node.Parent.Bounds.GetCenterPosition(), cameraPosition);
 
         // Node is too far away -> render parent
-        if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Tile.GetSize())
+        if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Bounds.GetSize())
         {
             if (this.nodesToLoad.Contains(node.Parent))
                 return true;
@@ -107,7 +107,7 @@ public class GrassRenderer
         return true;
     }
 
-    private void GenerateRenderTiles(List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> loadedTiles)
+    private void GenerateRenderTiles(List<LoadableGrassMQTNode> loadedTiles)
     {
         List<RenderTile> tilesToRender = new List<RenderTile>();
 
@@ -116,9 +116,9 @@ public class GrassRenderer
 
     public void DrawTilesToLoad()
     {
-        foreach (QuadTreeNode<LoadableStructContainer<GrassTileData>> node in this.nodesToLoad)
+        foreach (LoadableGrassMQTNode node in this.nodesToLoad)
         {
-            node.Tile.DrawTile(Color.red);
+            node.Bounds.DrawTile(Color.red);
         }
     }
 }
