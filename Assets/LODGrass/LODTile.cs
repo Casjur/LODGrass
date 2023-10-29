@@ -3,32 +3,32 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LODTile
+public class Rect3D
 {
-    public static readonly Vector3 Top = new Vector3(0, 0, 1);
-    public static readonly Vector3 Bottom = new Vector3(0, 0, -1);
-    public static readonly Vector3 Left = new Vector3(-1, 0, 0);
-    public static readonly Vector3 Right = new Vector3(1, 0, 0);
-
+    public static readonly Vector3 North = new Vector3(0, 0, 1);
+    public static readonly Vector3 South = new Vector3(0, 0, -1);
+    public static readonly Vector3 East = new Vector3(1, 0, 0);
+    public static readonly Vector3 West = new Vector3(-1, 0, 0);
+    
     // Position relative to the TopLeft origin point of the parent tile
     public static readonly Vector3[] RelativePositions = {
-        Vector3.zero,
-        Right,
-        Top,
-        Top + Right
+        Vector3.zero, // SW
+        East,         // SE
+        North,        // NW
+        North + East  // NE
     };
 
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
 
-    public LODTile(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
+    public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
     { 
         Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
         Vector3 position = parentPosition + relativePosition;
         this.Tile = new Rect(position.x, position.z, size, size);
     }
 
-    public LODTile(Vector3 position, float size)
+    public Rect3D(Vector3 position, float size)
     {
         this.Tile = new Rect(
             new Vector2(position.x, position.z),
@@ -82,16 +82,16 @@ public class LODTile
         if (position.z < Tile.y + halfLength)
         {
             if (position.x < Tile.x + halfLength)
-                return QuadNodePosition.BottomLeft;
+                return QuadNodePosition.SW;
             else
-                return QuadNodePosition.BottomRight;
+                return QuadNodePosition.SE;
         }
         else
         {
             if (position.x < Tile.x + halfLength)
-                return QuadNodePosition.TopLeft;
+                return QuadNodePosition.NW;
             else
-                return QuadNodePosition.TopRight;
+                return QuadNodePosition.NE;
         }
     }
 
@@ -123,22 +123,10 @@ public class LODTile
     }
 }
 
-//public class GrassLODTile : LODTile
-//{
-    
-//    public GrassTileData? Data { get; private set; } = null;
+public interface IQuadrantBounds
+{
 
-//    // Example of a texture name suffix
-//    public static string exampleNaming = "_h";
+}
 
-//    public GrassLODTile(Vector3 position, float size, string fileName) : base(position, size)
-//    {
-//        this.FileName = fileName;
-//    }
-
-    
-
-    
-//}
 
 
