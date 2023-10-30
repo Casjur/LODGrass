@@ -11,8 +11,9 @@ public abstract class LoadableMQTAbstract<TContent, TLoadableNode>
 {
     public string FolderPath { get; private set; }
 
-    public List<LoadableMQTNodeAbstract<TContent, TLoadableNode>> LoadedNodes { get; protected set; }
+    //public List<LoadableMQTNodeAbstract<TContent, TLoadableNode>> LoadedNodes { get; protected set; } = new List<LoadableMQTNodeAbstract<TContent, TLoadableNode>>();
     public List<TLoadableNode> nodesToLoad = new List<TLoadableNode>();
+    public List<TLoadableNode> nodesToUnload = new List<TLoadableNode>();
 
     public LoadableMQTAbstract(string folderPath)
     {
@@ -23,6 +24,35 @@ public abstract class LoadableMQTAbstract<TContent, TLoadableNode>
     {
         this.FolderPath = folderPath;
     }
+
+    public List<TLoadableNode> GetLoadedNodes()
+    {
+        List<TLoadableNode> loadedNodes = new List<TLoadableNode>();
+        if (this.Root == null)
+            return loadedNodes;
+
+        RecurseLoadedNodes(ref loadedNodes, this.Root);
+
+        return loadedNodes;
+    }
+
+    private void RecurseLoadedNodes(ref List<TLoadableNode> loadedNodes, TLoadableNode node)
+    {
+        if (node.IsLoaded)
+            loadedNodes.Add(node);
+
+        if(node.HasChildren)
+        {
+            if (node.NE != null)
+                RecurseLoadedNodes(ref loadedNodes, node.NE);
+            if (node.SE != null)
+                RecurseLoadedNodes(ref loadedNodes, node.SE);
+            if (node.NW != null)
+                RecurseLoadedNodes(ref loadedNodes, node.NW);
+            if (node.SW != null)
+                RecurseLoadedNodes(ref loadedNodes, node.SW);
+        }
+    }
 }
 
 public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
@@ -30,7 +60,10 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
     where TContent : class
     where TLoadableNode : LoadableMQTNodeAbstract<TContent, TLoadableNode>
 {
-    public bool IsLoaded { get; protected set; }
+    public bool IsSaving { get; protected set; } = false;
+    public bool IsSaved { get; protected set; } = false;
+    public bool IsLoading { get; protected set; } = false;
+    public bool IsLoaded { get; protected set; } = false;
 
     public int Layer { get; protected set; }
     public QuadNodePosition RelativePosition { get; protected set; }
@@ -42,6 +75,7 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
     {
         this.Layer = this.GetDepth();
         this.Index = 0;
+        this.FileName = ConvertIndexToString(0);
     }
 
     public LoadableMQTNodeAbstract(TLoadableNode parent, QuadNodePosition relativePosition)

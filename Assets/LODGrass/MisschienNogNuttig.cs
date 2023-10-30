@@ -972,3 +972,42 @@
 
 //    }
 //}
+
+
+
+
+//string filePath = Path.Combine(folderPath, this.FileName);
+
+//if (File.Exists(filePath))
+//{
+//    byte[] fileData = null;
+//    await Task.Run(() =>
+//    {
+//        using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
+//        {
+//            fileData = new byte[fileStream.Length];
+//            fileStream.Read(fileData, 0, (int)fileStream.Length);
+//        }
+//    });
+
+//    if (fileData != null)
+//    {
+//        Texture2D texture = new Texture2D(2, 2); // Set the initial size to your preference
+//        bool loadSuccess = texture.LoadImage(fileData);
+
+//        if (loadSuccess)
+//        {
+//            return texture;
+//        }
+//        else
+//        {
+//            Debug.LogError("Failed to load texture from file.");
+//            return null;
+//        }
+//    }
+//}
+//else
+//{
+//    Debug.LogError("File not found: " + filePath);
+//}
+//return null;

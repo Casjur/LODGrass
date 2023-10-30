@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -31,7 +32,8 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         this.MaxDepth = noLayers;
         this.DataMapWidth = detailMapPixelWidth;
 
-        this.Root = this.GenerateRoot(new Rect3D(position, w_rootSize)); 
+        this.Root = this.GenerateRoot(new Rect3D(position, w_rootSize));
+        Debug.Log("Root created. Position: " + position + "; w_rootSize: " + w_rootSize + ";");
     }
 
     /// <summary>
@@ -45,7 +47,8 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 
     public override LoadableGrassMQTNode GenerateRoot(Rect3D bounds)
     {
-        return new LoadableGrassMQTNode(bounds);
+        LoadableGrassMQTNode root = new LoadableGrassMQTNode(bounds);
+        return root;
     }
 
     public LoadableGrassMQTNode GetBottomNodeAtPosition(Vector3 position)
@@ -98,8 +101,21 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
     {
         this.nodesToLoad.Clear();
 
+
+
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
-        foreach (LoadableGrassMQTNode node in this.LoadedNodes)
+        List<LoadableGrassMQTNode> loadedNodes = this.GetLoadedNodes();
+
+        if(loadedNodes.Count == 0)
+        {
+            Debug.Log("Only load root.");
+            this.nodesToLoad.Add(this.Root);
+            await this.Root.LoadContent(this.FolderPath);
+
+            return;
+        }
+
+        foreach (LoadableGrassMQTNode node in loadedNodes)
         {
             UpdateNodeToLoad(node, cameraPosition);
         }
@@ -108,6 +124,7 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         Task[] loadingTasks = new Task[this.nodesToLoad.Count];
         for (int i = 0; i < this.nodesToLoad.Count; i++)
         {
+            Debug.Log("Loading task: " + i);
             loadingTasks[i] = this.nodesToLoad[i].LoadContent(this.FolderPath);
         }
 
@@ -116,8 +133,9 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         // DEBUG: 
         foreach (LoadableGrassMQTNode node in this.nodesToLoad)
         {
+            Debug.Log("Make quad");
             GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            quad.transform.position = node.Bounds.GetPosition();
+            quad.transform.position = node.Bounds.GetCenterPosition();
             quad.transform.rotation = Quaternion.Euler(Vector3.right);
 
             quad.GetComponent<Renderer>().material.SetTexture("_MainTex", node.Content.exampleTexture);
@@ -141,6 +159,9 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
                 UpdateNodeToLoad(node.NW, cameraPosition);
                 UpdateNodeToLoad(node.SE, cameraPosition);
                 UpdateNodeToLoad(node.SW, cameraPosition);
+
+                if(!this.nodesToUnload.Contains(node))
+                    this.nodesToUnload.Add(node);
 
                 return true;
             }
@@ -336,67 +357,123 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         this.SW = new LoadableGrassMQTNode(this, QuadNodePosition.SW);
     }
 
+
+
     public async override Task LoadContent(string folderPath)
     {
-        string filePath = Path.Combine(folderPath, this.FileName);
+        if (this.IsLoading)
+            return;
+        this.IsLoading = true;
 
-        if (File.Exists(filePath))
+        if (this.Content != null)
+            return;
+
+        string filePath = "file://" + folderPath + "/" + this.FileName;
+
+        if (!this.IsSaved && !this.IsSaving && !File.Exists(filePath)) // Dont attempt to load non-existent data
         {
-            byte[] fileData = null;
-            await Task.Run(() =>
-            {
-                using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
-                {
-                    fileData = new byte[fileStream.Length];
-                    fileStream.Read(fileData, 0, (int)fileStream.Length);
-                }
-            });
+            this.Content = new GrassTileData(new Texture2D(512, 512)); // DONT HARDCODE THIS!!!
+            this.IsLoaded = true;
+            this.IsLoading = false;
+            await this.SaveContent(folderPath);
+            
+            return;
+        }
 
-            if (fileData != null)
-            {
-                Texture2D texture = new Texture2D(2, 2); // Set the initial size to your preference
-                bool loadSuccess = texture.LoadImage(fileData);
+        Debug.Log("Load content: " + this.FileName);
 
-                if (loadSuccess)
+        using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(filePath))
+        {
+            await www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                // Get the loaded texture
+                Texture2D texture = DownloadHandlerTexture.GetContent(www);
+                this.Content = new GrassTileData(texture);
+            }
+            else
+            {
+                this.IsLoaded = false;
+                Debug.LogError("Texture loading failed: " + www.error);
+            }
+        }
+
+        this.IsLoaded = true;
+    }
+
+
+    private SemaphoreSlim saveSemaphore = new SemaphoreSlim(1, 1);
+
+    public async override Task SaveContent(string folderPath)
+    {
+        if (await saveSemaphore.WaitAsync(0))
+        {
+            try
+            {
+                this.IsSaving = true;
+
+                byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+
+                string saveFilePath = Path.Combine(folderPath, this.FileName);
+
+                using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
                 {
-                    return texture;
+                    await fileStream.WriteAsync(textureData, 0, textureData.Length);
                 }
-                else
-                {
-                    Debug.LogError("Failed to load texture from file.");
-                    return null;
-                }
+
+                Debug.Log("Content saved successfully.");
+
+                this.IsSaved = true;
+                this.IsSaving = false;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("Content save error: " + ex.Message);
+            }
+            finally
+            {
+                saveSemaphore.Release();
             }
         }
         else
         {
-            Debug.LogError("File not found: " + filePath);
-        }
-        return null;
-    }
-
-    public async override Task SaveContent(string folderPath)
-    {
-        // Serialize the struct to a byte array.
-        byte[] dataBytes = StructureToByteArray(this.Data.Value);
-
-        // Create the file path.
-        string filePath = Path.Combine(folderPath, this.FileName);
-
-        // Write the byte array to the file.
-        try
-        {
-            await File.WriteAllBytesAsync(filePath, dataBytes);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Error saving data: " + e.Message);
+            Debug.LogError("Content save failed. Another operation is already in progress.");
         }
     }
+
+    //public async override Task SaveContent(string folderPath)
+    //{
+    //    //if (!this.IsSaving)
+    //    //    this.IsSaving = true;
+    //    //else
+    //    //    return;
+
+
+    //    //// Get the raw texture data
+    //    //byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+
+    //    //// Save the raw texture data to a file
+    //    //string saveFilePath = Path.Combine(folderPath, this.FileName);
+
+    //    //using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
+    //    //{
+    //    //    await fileStream.WriteAsync(textureData, 0, textureData.Length);
+    //    //}
+
+    //    //this.IsSaved = true;
+    //    //this.IsSaving = false;
+
+
+
+    //}
 
     public override Task UnloadContent()
     {
-        throw new NotImplementedException();
+        this.Content = null;
+        this.IsLoaded = false;
+
+        return Task.CompletedTask;
     }
 }
 

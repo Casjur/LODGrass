@@ -17,11 +17,8 @@ public class Grass : MonoBehaviour
     public const bool enableEditing = false;
 
     // Generation input variables
-    [SerializeField]
-    string folderPath = "Assets/GrassData";
-    [SerializeField]
-    Terrain terrain;
-    [SerializeField]
+    [SerializeField] string folderPath = "/GrassData";
+    [SerializeField] Terrain terrain; [SerializeField]
     float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39 texel)
     [SerializeField]
     int detailMapPixelWidth = 512; // Ghost of Tsushima waarde
@@ -48,7 +45,7 @@ public class Grass : MonoBehaviour
     {
         this.GrassRenderer = new GrassRenderer();
 
-        string fullFolderPath = Application.dataPath + folderPath;
+        string fullFolderPath = Path.Combine(Application.dataPath, folderPath);
         Vector2 terrainSize = new Vector2(terrain.terrainData.size.x, terrain.terrainData.size.z);
 
         this.GrassData = new LoadableGrassMQT(
@@ -59,13 +56,20 @@ public class Grass : MonoBehaviour
             detailMapPixelWidth
             );
 
+        this.Test();
+
         // Test expansion
         //this.GrassData.ExpandTree(this.GrassData.MaxDepth);
-        for(int i = 0; i < 20; i++)
-        {
-            Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
-            this.GrassData.PaintGrass(randomPos, 10, 1);
-        }
+        //for (int i = 0; i < 1; i++)
+        //{
+        //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
+        //    this.GrassData.PaintGrass(randomPos, 10, 1);
+        //}
+    }
+
+    private async void Test()
+    {
+        await this.GrassData.Root.LoadContent(this.GrassData.FolderPath);
     }
 
     // Update is called once per frame
@@ -73,6 +77,7 @@ public class Grass : MonoBehaviour
     {
         //this.GrassRenderer.ProcessAndRender(this, camera, this.GrassData);
         this.GrassData.UpdateLoaded(camera.transform.position);
+        DrawLoadedTiles(this.GrassData.GetLoadedNodes());
     }
 
     //
@@ -80,7 +85,9 @@ public class Grass : MonoBehaviour
     {
         foreach(LoadableGrassMQTNode node in loadedNodes)
         {
-            GameObject.CreatePrimitive(PrimitiveType.Quad);
+            node.Bounds.DrawTile(Color.red);
+            Debug.Log("Drawing Bounds. Pos: " + node.Bounds.GetPosition() + "; Size: " + node.Bounds.GetSize());
+            //GameObject.CreatePrimitive(PrimitiveType.Quad);
         }
     }
 }
@@ -92,5 +99,10 @@ public class GrassTileData
     public GrassTileData(int width, int height)
     {
         exampleTexture = new Texture2D(width, height);
+    }
+
+    public GrassTileData(Texture2D texture)
+    {
+        this.exampleTexture = texture;
     }
 }
