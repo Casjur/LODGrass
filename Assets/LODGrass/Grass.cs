@@ -17,15 +17,12 @@ public class Grass : MonoBehaviour
     public const bool enableEditing = false;
 
     // Generation input variables
-    [SerializeField] string folderPath = "/GrassData";
-    [SerializeField] Terrain terrain; [SerializeField]
-    float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39 texel)
-    [SerializeField]
-    int detailMapPixelWidth = 512; // Ghost of Tsushima waarde
-    [SerializeField]
-    double maxStoredPixels = 357826560;
-    [SerializeField]
-    float grassDensity = 8;
+    [SerializeField] string folderPath;// = "/GrassData";
+    [SerializeField] Terrain terrain; 
+    [SerializeField] float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39 texel)
+    [SerializeField] int detailMapPixelWidth = 512; // Ghost of Tsushima waarde
+    [SerializeField] double maxStoredPixels = 357826560;
+    [SerializeField] float grassDensity = 8;
 
     //
     [SerializeField]
@@ -45,7 +42,9 @@ public class Grass : MonoBehaviour
     {
         this.GrassRenderer = new GrassRenderer();
 
-        string fullFolderPath = Path.Combine(Application.dataPath, folderPath);
+        string wrongFullFolderPath = Path.Combine(Application.dataPath, folderPath);
+        string fullFolderPath = wrongFullFolderPath.Replace("\\", "/");
+
         Vector2 terrainSize = new Vector2(terrain.terrainData.size.x, terrain.terrainData.size.z);
 
         this.GrassData = new LoadableGrassMQT(
@@ -56,7 +55,7 @@ public class Grass : MonoBehaviour
             detailMapPixelWidth
             );
 
-        this.Test();
+        this.GrassData.PaintGrass(new Vector3(30, 0, 30), 20, 0);
 
         // Test expansion
         //this.GrassData.ExpandTree(this.GrassData.MaxDepth);
@@ -65,11 +64,6 @@ public class Grass : MonoBehaviour
         //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
         //    this.GrassData.PaintGrass(randomPos, 10, 1);
         //}
-    }
-
-    private async void Test()
-    {
-        await this.GrassData.Root.LoadContent(this.GrassData.FolderPath);
     }
 
     // Update is called once per frame

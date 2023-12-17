@@ -67,28 +67,32 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
 
     public int Layer { get; protected set; }
     public QuadNodePosition RelativePosition { get; protected set; }
-    public UInt32 Index { get; private set; } // Describes Layer and RelativePosition, so maybe redundant
+    public UInt32 Index { get; private set; } // Describes Layer and RelativePosition, so maybe redundant. Maybe not since it describes the full position within the tree
     public string FileName { get; private set; }
 
     public LoadableMQTNodeAbstract(Rect3D bounds)
         : base(bounds)
     {
         this.Layer = this.GetDepth();
-        this.Index = 0;
-        this.FileName = ConvertIndexToString(0);
+        this.RelativePosition = QuadNodePosition.SW;
+        GenerateIndex(0, this.Layer, this.RelativePosition);
+        this.FileName = ConvertIndexToString(this.Index);
     }
 
     public LoadableMQTNodeAbstract(TLoadableNode parent, QuadNodePosition relativePosition)
         : base(parent, relativePosition)
     {
         this.Layer = this.GetDepth();
+        this.RelativePosition = relativePosition;
         GenerateIndex(parent.Index, this.Layer, relativePosition);
         this.FileName = ConvertIndexToString(this.Index);
     }
 
     protected void GenerateIndex(UInt32 parentIndex, int layer, QuadNodePosition relativePosition)
     {
-        this.Index = ((uint)relativePosition << (layer * 2)) | parentIndex;
+        //UInt32.MaxValue
+        this.Index = parentIndex << (layer * 2) | (uint)relativePosition;
+        //this.Index = (layer << 2) | (uint)relativePosition; //((uint)relativePosition << (layer * 2)) | parentIndex;
     }
 
     public string GetFileName()

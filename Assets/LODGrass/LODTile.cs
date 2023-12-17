@@ -5,28 +5,15 @@ using UnityEngine;
 
 public class Rect3D
 {
-    public static readonly Vector3 North = new Vector3(0, 0, 1);
-    public static readonly Vector3 South = new Vector3(0, 0, -1);
-    public static readonly Vector3 East = new Vector3(1, 0, 0);
-    public static readonly Vector3 West = new Vector3(-1, 0, 0);
-    
-    // Position relative to the TopLeft origin point of the parent tile
-    public static readonly Vector3[] RelativePositions = {
-        Vector3.zero, // SW
-        East,         // SE
-        North,        // NW
-        North + East  // NE
-    };
-
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
 
-    public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
-    { 
-        Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
-        Vector3 position = parentPosition + relativePosition;
-        this.Tile = new Rect(position.x, position.z, size, size);
-    }
+    //public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
+    //{ 
+    //    Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
+    //    Vector3 position = parentPosition + relativePosition;
+    //    this.Tile = new Rect(position.x, position.z, size, size);
+    //}
 
     public Rect3D(Vector3 position, float size)
     {

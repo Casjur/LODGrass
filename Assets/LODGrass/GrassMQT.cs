@@ -34,6 +34,8 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 
         this.Root = this.GenerateRoot(new Rect3D(position, w_rootSize));
         Debug.Log("Root created. Position: " + position + "; w_rootSize: " + w_rootSize + ";");
+
+        
     }
 
     /// <summary>
@@ -94,14 +96,32 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         return node;
     }
 
+    int counter = 0;
+
     /// <summary>
     /// Update the list of loaded nodes
     /// </summary>
-    public async void UpdateLoaded(Vector3 cameraPosition)
+    public async void UpdateLoaded(Vector3 cameraPosition) 
+        // This method should probably only be executed one at a time, (since there is no point in trying to load stuff so quickly after one-another)
+        // but still on a different thread to save time
     {
+        counter++;
+
+        if (counter == 60)
+            Debug.Log("60 times updated loaded.");
+
+        // ___Unloading nodes___
+        Task[] unloadingTasks = new Task[this.nodesToUnload.Count];
+        for (int i = 0; i < this.nodesToUnload.Count; i++)
+        {
+            unloadingTasks[i] = this.nodesToUnload[i].UnloadContent();
+        }
+
+        await Task.WhenAll(unloadingTasks);
+        this.nodesToUnload.Clear();
+
+        // ___Loading nodes___
         this.nodesToLoad.Clear();
-
-
 
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
         List<LoadableGrassMQTNode> loadedNodes = this.GetLoadedNodes();
@@ -133,6 +153,9 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         // DEBUG: 
         foreach (LoadableGrassMQTNode node in this.nodesToLoad)
         {
+            if (!node.IsLoaded)
+                continue;
+
             Debug.Log("Make quad");
             GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
             quad.transform.position = node.Bounds.GetCenterPosition();
@@ -142,10 +165,10 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         }
     }
 
-    private bool UpdateNodeToLoad(LoadableGrassMQTNode node, Vector3 cameraPosition)
+    private void UpdateNodeToLoad(LoadableGrassMQTNode node, Vector3 cameraPosition)
     {
         if (node == null)
-            return false;
+            return;
 
         float distance = Vector3.Distance(node.Bounds.GetCenterPosition(), cameraPosition);
 
@@ -160,20 +183,22 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
                 UpdateNodeToLoad(node.SE, cameraPosition);
                 UpdateNodeToLoad(node.SW, cameraPosition);
 
-                if(!this.nodesToUnload.Contains(node))
+                if(!this.nodesToUnload.Contains(node) && node.IsLoaded)
                     this.nodesToUnload.Add(node);
 
-                return true;
+                return;
             }
 
-            this.nodesToLoad.Add(node);
-            return true;
+            if(!node.IsLoaded) // might be unnecessary since also being checked l
+                this.nodesToLoad.Add(node);
+            return;
         }
 
-        if (node.Parent == null)
+        if (nodesToLoad.Count == 0 && node.Parent == null)
         {
-            this.nodesToLoad.Add(node);
-            return true;
+            if (!node.IsLoaded) // might be unnecessary since also being checked l
+                this.nodesToLoad.Add(node);
+            return;
         }
 
         float distanceToParent = Vector3.Distance(node.Parent.Bounds.GetCenterPosition(), cameraPosition);
@@ -181,16 +206,24 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         // Node is too far away -> render parent
         if (distanceToParent >= SplitDistanceMultiplier * node.Parent.Bounds.GetSize())
         {
-            if (this.nodesToLoad.Contains(node.Parent))
-                return true;
+            // GAAT NIET GOED HIER MET UITLADEN VAN NODES
 
-            this.nodesToLoad.Add(node.Parent);
-            return true;
+            if (!node.Parent.IsLoaded) // might be unnecessary since also being checked l
+            {
+                if (!this.nodesToLoad.Contains(node.Parent))
+                    this.nodesToLoad.Add(node.Parent);
+
+                if(node.IsLoaded && !this.nodesToUnload.Contains(node))
+                    this.nodesToUnload.Add(node);
+            }
+
+            return;
         }
 
         // Node is fine as it is
-        this.nodesToLoad.Add(node);
-        return true;
+        if (!node.IsLoaded) // might be unnecessary since also being checked l
+            this.nodesToLoad.Add(node);
+        return;
     }
 
     // brushSize naar world size veranderen
@@ -228,7 +261,7 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
                 (int)(brushWorldPosition.x - bottomNode.Bounds.Tile.x),
                 (int)(brushWorldPosition.z - bottomNode.Bounds.Tile.y)
                 );
-            Vector2Int uv = relativePosition / (int)bottomNode.Bounds.GetSize();
+            Vector2Int uv = (relativePosition * this.DataMapWidth) / (int)bottomNode.Bounds.GetSize();
 
             // Set pixels of "brush"
             for (int x = uv.x; x < tex.width && x < (uv.x + brushSize); x++)
@@ -248,10 +281,16 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
             return;
         }
 
+        GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        quad.transform.position = bottomNode.Bounds.GetCenterPosition();
+        quad.transform.rotation = Quaternion.Euler(Vector3.right);
+
+        quad.GetComponent<Renderer>().material.SetTexture("_MainTex", bottomNode.Content.exampleTexture);
+
         // Carry painted changes over to parents
-        LoadableGrassMQTNode node = bottomNode;
         Texture2D source = bottomNode.Content.exampleTexture;
 
+        LoadableGrassMQTNode node = bottomNode;
         for (int mipLevel = 1; node.Parent != null; mipLevel++)
         {
             // Go up
@@ -296,6 +335,8 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         Color[] sourcePixels = source.GetPixels();
 
         int multiplier = (int)Math.Pow(2, mipLevel);
+
+        return new Texture2D(this.DataMapWidth, this.DataMapWidth);
 
         for (int y = 0; y < source.height; y++)
         {
@@ -366,9 +407,13 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         this.IsLoading = true;
 
         if (this.Content != null)
+        {
+            this.IsLoading = false;
             return;
+        }
 
-        string filePath = "file://" + folderPath + "/" + this.FileName;
+        string filePath = Path.Combine(folderPath, this.FileName);
+        string webFilePath = "file://" + filePath;
 
         if (!this.IsSaved && !this.IsSaving && !File.Exists(filePath)) // Dont attempt to load non-existent data
         {
@@ -382,65 +427,170 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
 
         Debug.Log("Load content: " + this.FileName);
 
-        using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(filePath))
+        using (UnityWebRequest www = UnityWebRequest.Get(webFilePath)) //UnityWebRequestTexture.GetTexture(filePath))
         {
             await www.SendWebRequest();
 
             if (www.result == UnityWebRequest.Result.Success)
             {
                 // Get the loaded texture
-                Texture2D texture = DownloadHandlerTexture.GetContent(www);
+                //Texture2D texture = DownloadHandlerTexture.GetContent(www);
+
+                Texture2D texture = new Texture2D(512, 512);
+                texture.LoadRawTextureData(www.downloadHandler.data);
+                texture.Apply();
+
                 this.Content = new GrassTileData(texture);
+                this.IsLoaded = true;
             }
             else
             {
                 this.IsLoaded = false;
+
                 Debug.LogError("Texture loading failed: " + www.error);
+                Debug.LogError("DownloadHandler error: " + www.downloadHandler.error);
             }
         }
 
-        this.IsLoaded = true;
+        this.IsLoading = false;
+        return;
     }
 
 
-    private SemaphoreSlim saveSemaphore = new SemaphoreSlim(1, 1);
+    //private SemaphoreSlim saveSemaphore = new SemaphoreSlim(1, 1);
+    private readonly object saveLock = new object();
 
+    // ChatGPT version 2
+    //public async override Task SaveContent(string folderPath)
+    //{
+    //    bool lockAcquired = false;
+
+    //    try
+    //    {
+    //        Monitor.TryEnter(saveLock, ref lockAcquired);
+
+    //        if (!lockAcquired)
+    //        {
+    //            Debug.Log("Already saving!");
+    //            throw new InvalidOperationException("Save operation is already in progress.");
+    //        }
+
+    //        this.IsSaving = true;
+
+    //        // Simulate a time-consuming operation (e.g., loading content)
+    //        await Task.Delay(2000);
+
+    //        Debug.Log("Content saved successfully.");
+    //        this.IsSaved = true;
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Debug.LogError("Content save error: " + ex.Message);
+    //    }
+    //    finally
+    //    {
+    //        if (lockAcquired)
+    //        {
+    //            Monitor.Exit(saveLock);
+    //        }
+
+    //        this.IsSaving = false;
+    //    }
+    //}
+
+    // ChatGPT version 1
     public async override Task SaveContent(string folderPath)
     {
-        if (await saveSemaphore.WaitAsync(0))
+        bool lockAcquired = false;
+
+        try
         {
-            try
+            Monitor.TryEnter(saveLock, ref lockAcquired);
+
+            if (!lockAcquired)
             {
-                this.IsSaving = true;
-
-                byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
-
-                string saveFilePath = Path.Combine(folderPath, this.FileName);
-
-                using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
-                {
-                    await fileStream.WriteAsync(textureData, 0, textureData.Length);
-                }
-
-                Debug.Log("Content saved successfully.");
-
-                this.IsSaved = true;
-                this.IsSaving = false;
+                Debug.Log("Already saving!");
+                throw new InvalidOperationException("Save operation is already in progress.");
             }
-            catch (Exception ex)
+
+            this.IsSaving = true;
+
+            byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+
+            string saveFilePath = Path.Combine(folderPath, this.FileName);
+
+            Debug.Log($"Writing to file: {saveFilePath}");
+            await using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
             {
-                Debug.LogError("Content save error: " + ex.Message);
+                fileStream.Write(textureData, 0, textureData.Length);
+                //await fileStream.WriteAsync(textureData, 0, textureData.Length);
             }
-            finally
-            {
-                saveSemaphore.Release();
-            }
+            Debug.Log($"Write to file completed: {saveFilePath}");
+
+            Debug.Log("Content saved successfully.");
+            this.IsSaved = true;
         }
-        else
+        catch (Exception ex)
         {
-            Debug.LogError("Content save failed. Another operation is already in progress.");
+            Debug.LogError("Content save error: " + ex.Message);
+        }
+        finally
+        {
+            if (lockAcquired)
+            {
+                Monitor.Exit(saveLock);
+            }
+
+            this.IsSaving = false;
         }
     }
+
+    //public async override Task SaveContent(string folderPath)
+    //{
+    //    // This could make it faster, since it most of method calls wont reach the lock
+    //    //if (this.IsSaving)
+    //    //    return;
+
+    //    lock (saveLock)
+    //    {
+    //        if (this.IsSaving)
+    //        {
+    //            Debug.Log("Already saving!");
+    //            throw new InvalidOperationException("Save operation is already in progress.");
+    //            return;
+    //        }
+
+    //        this.IsSaving = true;
+    //    }
+
+    //    try
+    //    {
+    //        byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+
+    //        string saveFilePath = Path.Combine(folderPath, this.FileName);
+
+    //        using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
+    //        {
+    //            await fileStream.WriteAsync(textureData, 0, textureData.Length);
+    //            fileStream.Close();
+    //        }
+
+    //        Debug.Log("Content saved successfully.");
+
+    //        this.IsSaved = true;
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Debug.LogError("Content save error: " + ex.Message);
+    //    }
+    //    finally
+    //    {
+    //        lock(saveLock) // Lock might not be necesarry here, since there shouldnt be any race conditions
+    //        {
+    //            this.IsSaving = false;
+    //        }
+    //    }
+    //}
 
     //public async override Task SaveContent(string folderPath)
     //{

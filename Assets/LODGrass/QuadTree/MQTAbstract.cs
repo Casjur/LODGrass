@@ -8,7 +8,7 @@ using UnityEngine;
 //(probably better if this is inside the class, 
 // but than it can not be properly accessed by another class, 
 // because it is generic) 
-public enum QuadNodePosition { SW = 0, SE = 1, NW = 2, NE = 3 };
+public enum QuadNodePosition { SW = 3, SE = 2, NW = 1, NE = 0 }; // utterly ridiculous order to make indexing possible
 
 /// <summary>
 /// Minimal Quad Tree (MQT). Sorry for the, possibly already taken, accronym, 
@@ -106,6 +106,20 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
 
     public bool HasChildren { get; protected set; }
 
+    //This should not be here
+    public static readonly Vector3 North = new Vector3(0, 0, 1);
+    public static readonly Vector3 South = new Vector3(0, 0, -1);
+    public static readonly Vector3 East = new Vector3(1, 0, 0);
+    public static readonly Vector3 West = new Vector3(-1, 0, 0);
+
+    // Position relative to the TopLeft origin point of the parent tile
+    public static readonly Vector3[] RelativePositions = {
+        North + East, // NE (0)
+        North,        // NW (1)
+        East,         // SE (2)
+        Vector3.zero  // SW (3)
+    };
+
     public MinimalQuadTreeNodeAbstract(Rect3D bounds)
     {
         this.Bounds = bounds;
@@ -124,9 +138,14 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     public abstract void GenerateSE();
     public abstract void GenerateSW();
 
+    // Jesus Christ, I have to fix the variable names here...
     private void GenerateBoundsFromParent(Rect3D parentBounds, QuadNodePosition relativePosition)
     {
-        this.Bounds = new Rect3D(parentBounds.GetPosition(), relativePosition, parentBounds.GetSize());
+        float size = parentBounds.GetSize() / 2f;
+        Vector3 realRelativePosition = RelativePositions[(int)relativePosition] * size;
+        Vector3 position = parentBounds.GetPosition() + realRelativePosition;
+        
+        this.Bounds = new Rect3D(position, size);
     }
 
     public int GetDepth()
