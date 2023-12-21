@@ -398,8 +398,6 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         this.SW = new LoadableGrassMQTNode(this, QuadNodePosition.SW);
     }
 
-
-
     public async override Task LoadContent(string folderPath)
     {
         if (this.IsLoading)
@@ -437,7 +435,8 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
                 //Texture2D texture = DownloadHandlerTexture.GetContent(www);
 
                 Texture2D texture = new Texture2D(512, 512);
-                texture.LoadRawTextureData(www.downloadHandler.data);
+                texture.LoadImage(www.downloadHandler.data);
+                //texture.LoadRawTextureData(www.downloadHandler.data);
                 texture.Apply();
 
                 this.Content = new GrassTileData(texture);
@@ -515,7 +514,8 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
 
             this.IsSaving = true;
 
-            byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+            //byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
+            byte[] textureData = this.Content.exampleTexture.EncodeToPNG();
 
             string saveFilePath = Path.Combine(folderPath, this.FileName);
 

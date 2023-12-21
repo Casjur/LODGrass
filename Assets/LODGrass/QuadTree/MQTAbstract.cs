@@ -80,16 +80,6 @@ public abstract class MinimalQuadTreeAbstract<TContent, TNode>
     }
 }
 
-public class Test2
-{
-    Test<GrassTileData> bla = new Test<GrassTileData>();
-}
-
-public class Test<T>
-    where T : class
-{
-}
-
 public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     where TNode : MinimalQuadTreeNodeAbstract<TContent, TNode>
 {

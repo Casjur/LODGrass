@@ -59,11 +59,11 @@ public class Grass : MonoBehaviour
 
         // Test expansion
         //this.GrassData.ExpandTree(this.GrassData.MaxDepth);
-        //for (int i = 0; i < 1; i++)
-        //{
-        //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
-        //    this.GrassData.PaintGrass(randomPos, 10, 1);
-        //}
+        for (int i = 0; i < 20; i++)
+        {
+            Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
+            this.GrassData.PaintGrass(randomPos, 20, 0);
+        }
     }
 
     // Update is called once per frame
