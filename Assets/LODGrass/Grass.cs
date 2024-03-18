@@ -11,10 +11,14 @@ using UnityEngine.Networking;
 
 public class Grass : MonoBehaviour
 {
+    // Debug vars
     public static Material testMat;
+    public GameObject testObject;
+    public Transform brushTransform;
 
-    // 
-    public const bool enableEditing = false;
+    // Controls
+    public const bool _enableEditing = true;
+    public bool doUpdateWithCamera = false;
 
     // Generation input variables
     [SerializeField] string folderPath;// = "/GrassData";
@@ -24,18 +28,15 @@ public class Grass : MonoBehaviour
     [SerializeField] double maxStoredPixels = 357826560;
     [SerializeField] float grassDensity = 8;
 
-    //
-    [SerializeField]
-    private Camera camera;
+    // Dependencies
+    [SerializeField] private Camera camera;
+    
     //[field: SerializeField]
     //public const float SplitDistanceMultiplier = 2;
 
     // Contents
     public LoadableGrassMQT GrassData { get; private set; }
     private GrassRenderer GrassRenderer;
-
-    //
-    public readonly List<GrassTileData> LoadedGrass = new List<GrassTileData>(); 
 
     // Start is called before the first frame update
     void Start()
@@ -52,24 +53,28 @@ public class Grass : MonoBehaviour
             terrain.GetPosition(), 
             terrainSize, 
             detailMapDensity, 
-            detailMapPixelWidth
+            detailMapPixelWidth,
+            testObject
             );
 
-        this.GrassData.PaintGrass(new Vector3(30, 0, 30), 20, 0);
-
-        // Test expansion
-        //this.GrassData.ExpandTree(this.GrassData.MaxDepth);
-        for (int i = 0; i < 20; i++)
-        {
-            Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
-            this.GrassData.PaintGrass(randomPos, 20, 0);
-        }
+        // Test painting
+        //for (int i = 0; i < 20; i++)
+        //{
+        //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
+        //    this.GrassData.PaintGrass(randomPos, 20, 0);
+        //}
     }
 
     // Update is called once per frame
     void Update()
     {
         //this.GrassRenderer.ProcessAndRender(this, camera, this.GrassData);
+
+        // Test grass painting with an objects position
+        if (_enableEditing)
+            this.GrassData.PaintGrass(brushTransform.position, (int)brushTransform.localScale.x, 0);
+
+        this.GrassData.doUpdateWithCamera = this.doUpdateWithCamera;
         this.GrassData.UpdateLoaded(camera.transform.position);
         DrawLoadedTiles(this.GrassData.GetLoadedNodes());
     }

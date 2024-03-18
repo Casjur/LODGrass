@@ -9,13 +9,22 @@ using UnityEngine.Networking;
 
 public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrassMQTNode>
 {
+    // Debug variables
+    public GameObject testObject;
+
+    //
+    public bool doUpdateWithCamera = false;
+
     public const float SplitDistanceMultiplier = 2;
     public int DataMapWidth { get; private set; }
 
     // ! Change names with w_ and h_, since its confusing with naming conventions
-    public LoadableGrassMQT(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth) 
+    public LoadableGrassMQT(string folderPath, Vector3 position, Vector2 size, float detailMapDensity, int detailMapPixelWidth, GameObject testObject) 
         : base(folderPath)
     {
+        this.testObject = testObject;
+
+        // Calculate the sizes of nodes and create the root node
         float w_canvas = size.x;
         float h_canvas = size.y;
 
@@ -43,9 +52,11 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
     /// </summary>
     /// <param name="folderPath"></param>
     /// <param name="bounds"></param>
-    public LoadableGrassMQT(string folderPath, Rect3D bounds) 
+    public LoadableGrassMQT(string folderPath, Rect3D bounds, GameObject testObject) 
         : base(folderPath, bounds)
-    { }
+    {
+        this.testObject = testObject;
+    }
 
     public override LoadableGrassMQTNode GenerateRoot(Rect3D bounds)
     {
@@ -96,8 +107,6 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         return node;
     }
 
-    int counter = 0;
-
     /// <summary>
     /// Update the list of loaded nodes
     /// </summary>
@@ -105,11 +114,6 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         // This method should probably only be executed one at a time, (since there is no point in trying to load stuff so quickly after one-another)
         // but still on a different thread to save time
     {
-        counter++;
-
-        if (counter == 60)
-            Debug.Log("60 times updated loaded.");
-
         // ___Unloading nodes___
         Task[] unloadingTasks = new Task[this.nodesToUnload.Count];
         for (int i = 0; i < this.nodesToUnload.Count; i++)
@@ -122,6 +126,9 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 
         // ___Loading nodes___
         this.nodesToLoad.Clear();
+
+        if (!this.doUpdateWithCamera) // could maybe be placed before the previous line
+            return;
 
         // Iterate over loaded nodes, and determine which need to be loaded or unloaded
         List<LoadableGrassMQTNode> loadedNodes = this.GetLoadedNodes();
@@ -149,20 +156,6 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         }
 
         await Task.WhenAll(loadingTasks);
-
-        // DEBUG: 
-        foreach (LoadableGrassMQTNode node in this.nodesToLoad)
-        {
-            if (!node.IsLoaded)
-                continue;
-
-            Debug.Log("Make quad");
-            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            quad.transform.position = node.Bounds.GetCenterPosition();
-            quad.transform.rotation = Quaternion.Euler(Vector3.right);
-
-            quad.GetComponent<Renderer>().material.SetTexture("_MainTex", node.Content.exampleTexture);
-        }
     }
 
     private void UpdateNodeToLoad(LoadableGrassMQTNode node, Vector3 cameraPosition)
@@ -231,14 +224,21 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
     {
         // Dont do anything if brush is not on terrain
         if (!this.Root.Bounds.IsPointInTile(brushWorldPosition))
+        {
+            Debug.Log("Brush is outside the root node!");
             return;
+        }
 
         //List<QuadTreeNode<LoadableStructContainer<GrassTileData>>> nodesToPaint = new List<QuadTreeNode<LoadableStructContainer<GrassTileData>>>();
 
+        // __Paint on bottom node__
         // Get the bottom node at position
         LoadableGrassMQTNode bottomNode = this.GenerateToBottomTileAtPosition(brushWorldPosition);
         if (bottomNode == null)
+        {
+            Debug.Log("No bottom node possible/found!");
             return;
+        }
 
         // Load nodes
         await bottomNode.LoadAndUp(this.FolderPath);
@@ -246,10 +246,12 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         List<Task> savingTasks = new List<Task>();
 
         // Check whether or not the brush crosses into neighbouring tile
-        Rect brushBounds = new Rect(brushWorldPosition.x, brushWorldPosition.y, brushSize, brushSize);
+        Rect brushBounds = new Rect(brushWorldPosition.x, brushWorldPosition.z, brushSize, brushSize);
 
         if (bottomNode.Bounds.IsRectOnlyInTile(brushBounds))
         { // Brush is only in this tile
+            //GameObject.Instantiate(testObject, brushWorldPosition, Quaternion.identity); // Debug
+
             // If new node, create initial data for tile
             if (bottomNode.Content == null)
                 bottomNode.Content = new GrassTileData(this.DataMapWidth, this.DataMapWidth);
@@ -281,41 +283,34 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
             return;
         }
 
-        GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        quad.transform.position = bottomNode.Bounds.GetCenterPosition();
-        quad.transform.rotation = Quaternion.Euler(Vector3.right);
-
-        quad.GetComponent<Renderer>().material.SetTexture("_MainTex", bottomNode.Content.exampleTexture);
-
-        // Carry painted changes over to parents
+        // __Carry painted changes over to parents__
         Texture2D source = bottomNode.Content.exampleTexture;
 
-        LoadableGrassMQTNode node = bottomNode;
-        for (int mipLevel = 1; node.Parent != null; mipLevel++)
+        LoadableGrassMQTNode sourceNode = bottomNode;
+        for (int mipLevel = 1; sourceNode.Parent != null; mipLevel++)
         {
-            // Go up
-            node = node.Parent;
+            LoadableGrassMQTNode targetNode = sourceNode.Parent;
 
             // If new node, create initial data for tile
-            if (node.Content == null)
-                node.Content = new GrassTileData(this.DataMapWidth, this.DataMapWidth);
+            if (targetNode.Content == null)
+                targetNode.Content = new GrassTileData(this.DataMapWidth, this.DataMapWidth);
 
             // Paint mipmap on corner
-            Texture2D target = node.Content.exampleTexture;
+            Texture2D target = targetNode.Content.exampleTexture;
 
-            switch (node.RelativePosition)
+            switch (sourceNode.RelativePosition)
             {
                 case QuadNodePosition.NW:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 255));
-                    break;
-                case QuadNodePosition.SW:
                     PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 255));
                     break;
+                case QuadNodePosition.SW:
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    break;
                 case QuadNodePosition.NE:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 255));
                     break;
                 case QuadNodePosition.SE:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 0));
                     break;
                 default:
                     PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
@@ -323,44 +318,35 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
             }
 
             // Save changes
-            savingTasks.Add(node.SaveContent(this.FolderPath));
+            savingTasks.Add(targetNode.SaveContent(this.FolderPath));
+
+            // Go up
+            sourceNode = sourceNode.Parent;
         }
 
         await Task.WhenAll(savingTasks);
+
     }
 
     private Texture2D PaintTextureOnTexture(ref Texture2D target, Texture2D source, int mipLevel, Vector2Int position)
     {
-        Color[] targetPixels = target.GetPixels();
-        Color[] sourcePixels = source.GetPixels();
+        Color32[] sourcePixels = source.GetPixels32(mipLevel);
+        Color32[] targetPixels = target.GetPixels32();
 
-        int multiplier = (int)Math.Pow(2, mipLevel);
+        int sourceSize = source.width / (1 << mipLevel);
 
-        return new Texture2D(this.DataMapWidth, this.DataMapWidth);
-
-        for (int y = 0; y < source.height; y++)
+        for (int y = 0; y < sourceSize; y++)
         {
-            for (int x = 0; x < source.width; x++)
+            for (int x = 0; x < sourceSize; x++)
             {
-                int targetIndex = y * target.width + x;
-                int sourceIndex = y * source.width * multiplier + x * multiplier; // Gaat sowieso buiten array range
-
-                if (targetIndex < targetPixels.Length && sourceIndex < sourcePixels.Length)
-                {
-                    targetPixels[targetIndex] = sourcePixels[sourceIndex];
-                }
-                else
-                {
-                    Debug.Log("Source or target texture assumed to be 'too long'");
-                }
-
-                //target.SetPixel(
-                //    x + position.x, 
-                //    y + position.y, 
-                //    target.GetPixel(x << mipLevel, y, mipLevel)
-                //    );
+                int sourceIndex = (y * sourceSize) + x;
+                int targetIndex = ((y + position.y) * target.width) + x + position.x;
+                targetPixels[targetIndex] = sourcePixels[sourceIndex];
             }
         }
+
+        target.SetPixels32(targetPixels);
+        target.Apply();
 
         return target;
     }
@@ -373,13 +359,20 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 /// </summary>
 public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, LoadableGrassMQTNode>
 {
+    // Debug vars
+    GameObject quadVisual;
+
     public LoadableGrassMQTNode(Rect3D bounds)
         : base(bounds)
-    { }
+    {
+        this.CreateQuadRepresentation(); // debug
+    }
 
     public LoadableGrassMQTNode(LoadableGrassMQTNode parent, QuadNodePosition relativePosition)
         : base(parent, relativePosition)
-    { }
+    {
+        this.CreateQuadRepresentation(); // debug
+    }
 
     public override void GenerateNE()
     {
@@ -452,6 +445,9 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         }
 
         this.IsLoading = false;
+
+        this.UpdateQuadRepresentation(); // debug
+
         return;
     }
 
@@ -624,6 +620,23 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         this.IsLoaded = false;
 
         return Task.CompletedTask;
+    }
+
+    private void CreateQuadRepresentation() // Debug method
+    {
+        this.quadVisual = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        this.quadVisual.transform.position = this.Bounds.GetCenterPosition() + Vector3.up * (this.Layer + 1);
+        this.quadVisual.transform.rotation = Quaternion.Euler(new Vector3(90, 0, 0));
+        this.quadVisual.transform.localScale = Vector3.one * this.Bounds.GetSize();
+
+        if(this.Content != null)
+            this.quadVisual.GetComponent<Renderer>().material.SetTexture("_MainTex", this.Content.exampleTexture);
+    }
+
+    private void UpdateQuadRepresentation() // Debug method
+    {
+        if(this.Content != null)
+            this.quadVisual.GetComponent<Renderer>().material.SetTexture("_MainTex", this.Content.exampleTexture);
     }
 }
 

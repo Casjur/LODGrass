@@ -1,5 +1,10 @@
 ﻿Problemen:
-1.
+1. Memory stapelt snel op wanneer je tekent. 
+   Binnen bijna een minuut kan het al naar een crash gaan.
+2. Gras QT update niet met de camera positie, als de nodes nog 
+   niet aangemaakt zijn. (maar ze dus wel al data op disk hebben)
+3. Bij het plaatsen van 1 texture op de andere wordt de originele source
+   gebruikt. Positie is klopt niet.
 
 Todo:
 1. Coroutines vervangen door async

@@ -42,6 +42,7 @@ public abstract class MinimalQuadTreeAbstract<TContent, TNode>
 
     /// <summary>
     /// Generates nodes untill the max depth is reached, following a given position.
+    /// NOTE: Will not replace existing nodes.
     /// </summary>
     /// <param name="position"></param>
     /// <returns>The bottom node that was generated</returns>
@@ -58,19 +59,23 @@ public abstract class MinimalQuadTreeAbstract<TContent, TNode>
             switch (relativePosition)
             {
                 case QuadNodePosition.NE:
-                    bottomNode.GenerateNE();
+                    if (bottomNode.NE == null)
+                        bottomNode.GenerateNE();
                     bottomNode = bottomNode.NE;
                     break;
                 case QuadNodePosition.NW:
-                    bottomNode.GenerateNW();
+                    if (bottomNode.NW == null)
+                        bottomNode.GenerateNW();
                     bottomNode = bottomNode.NW;
                     break;
                 case QuadNodePosition.SE:
-                    bottomNode.GenerateSE();
+                    if (bottomNode.SE == null)
+                        bottomNode.GenerateSE();
                     bottomNode = bottomNode.SE;
                     break;
                 case QuadNodePosition.SW:
-                    bottomNode.GenerateSW();
+                    if(bottomNode.SW == null)
+                        bottomNode.GenerateSW();
                     bottomNode = bottomNode.SW;
                     break;
             }
@@ -87,10 +92,10 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
 
     public TNode Parent { get; private set; }
 
-    public TNode NE { get; protected set; }
-    public TNode NW { get; protected set; } // (x:  1, z:  1)
-    public TNode SE { get; protected set; } // (x: -1, z: -1)
-    public TNode SW { get; protected set; }
+    public TNode NE { get; protected set; } // (x:  1, z:  1) 
+    public TNode NW { get; protected set; } 
+    public TNode SE { get; protected set; } 
+    public TNode SW { get; protected set; } // (x: -1, z: -1)
 
     public Rect3D Bounds { get; private set; } // Replace with a generic/abstract/interface for 
 
