@@ -510,7 +510,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: -0, y: -0.94482064, z: -0, w: 0.32758802}
-  m_LocalPosition: {x: 1005.51, y: 9.61, z: 1006.26}
+  m_LocalPosition: {x: 3496, y: 9.61, z: 3951}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -625,7 +625,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   testObject: {fileID: 7758701023246437140, guid: caedb9ff618a9194db6f37a431e56aaa, type: 3}
   brushTransform: {fileID: 844986431}
-  doUpdateWithCamera: 0
+  doUpdateWithCamera: 1
   folderPath: GrassData
   terrain: {fileID: 1090452290}
   detailMapDensity: 4

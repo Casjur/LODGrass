@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -23,6 +24,14 @@ public abstract class LoadableMQTAbstract<TContent, TLoadableNode>
     public LoadableMQTAbstract(string folderPath, Rect3D bounds) : base(bounds)
     {
         this.FolderPath = folderPath;
+    }
+
+    public void CreateTreeFromFiles()
+    {
+        if(Directory.Exists(this.FolderPath))
+        {
+            this.Root.CreateTreeFromFiles(this.FolderPath, this.MaxDepth);
+        }
     }
 
     public List<TLoadableNode> GetLoadedNodes()
@@ -104,6 +113,38 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
     {
         byte[] bytes = BitConverter.GetBytes(index);
         return Convert.ToBase64String(bytes);
+    }
+
+    public void CreateTreeFromFiles(string folderPath, int maxDepth)
+    {
+        if (this.GetDepth() >= maxDepth)
+            return;
+
+        this.GenerateNE();
+        this.GenerateNW();
+        this.GenerateSW();
+        this.GenerateSE();
+
+        CheckAndCreateChildTree(this.NE, folderPath, maxDepth);
+        CheckAndCreateChildTree(this.NW, folderPath, maxDepth);
+        CheckAndCreateChildTree(this.SW, folderPath, maxDepth);
+        CheckAndCreateChildTree(this.SE, folderPath, maxDepth);
+    }
+
+    private void CheckAndCreateChildTree(TLoadableNode childNode, string folderPath, int maxDepth)
+    {
+        string filePath = Path.Combine(folderPath, childNode.FileName);
+        if (childNode != null && File.Exists(filePath))
+        {
+            childNode.IsSaved = true;
+            childNode.CreateTreeFromFiles(folderPath, maxDepth);
+        }
+        else
+        {
+            // If the file doesn't exist or the child node is null, set the child node to null.
+            // This assumes that if the file doesn't exist, there shouldn't be any corresponding node.
+            childNode = null;
+        }
     }
 
     public async Task LoadAndUp(string folderPath)

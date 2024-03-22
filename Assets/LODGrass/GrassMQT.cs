@@ -284,9 +284,11 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         }
 
         // __Carry painted changes over to parents__
+        // NOTE: better to do this with just the brush and not the entire texture
         Texture2D source = bottomNode.Content.exampleTexture;
 
         LoadableGrassMQTNode sourceNode = bottomNode;
+        Vector2Int position = new Vector2Int(0, 0);
         for (int mipLevel = 1; sourceNode.Parent != null; mipLevel++)
         {
             LoadableGrassMQTNode targetNode = sourceNode.Parent;
@@ -297,23 +299,28 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 
             // Paint mipmap on corner
             Texture2D target = targetNode.Content.exampleTexture;
-
+            int sourceRelativeSize = this.DataMapWidth / 2; 
+            position = position / 2;
             switch (sourceNode.RelativePosition)
             {
                 case QuadNodePosition.NW:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 255));
+                    position += new Vector2Int(0, sourceRelativeSize - 1);
+                    PaintTextureOnTexture(ref target, source, mipLevel, position); //new Vector2Int(0, 255));
                     break;
                 case QuadNodePosition.SW:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    // position += vec(0,0)
+                    PaintTextureOnTexture(ref target, source, mipLevel, position); //new Vector2Int(0, 0));
                     break;
                 case QuadNodePosition.NE:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 255));
+                    position += new Vector2Int(sourceRelativeSize - 1, sourceRelativeSize - 1);
+                    PaintTextureOnTexture(ref target, source, mipLevel, position); //new Vector2Int(255, 255));
                     break;
                 case QuadNodePosition.SE:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(255, 0));
+                    position += new Vector2Int(sourceRelativeSize - 1, 0);
+                    PaintTextureOnTexture(ref target, source, mipLevel, position); //new Vector2Int(255, 0));
                     break;
                 default:
-                    PaintTextureOnTexture(ref target, source, mipLevel, new Vector2Int(0, 0));
+                    PaintTextureOnTexture(ref target, source, mipLevel, position); //new Vector2Int(0, 0));
                     break;
             }
 
@@ -406,14 +413,21 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
         string filePath = Path.Combine(folderPath, this.FileName);
         string webFilePath = "file://" + filePath;
 
-        if (!this.IsSaved && !this.IsSaving && !File.Exists(filePath)) // Dont attempt to load non-existent data
+        if (!this.IsSaved) /*  && !this.IsSaving && */ // Dont attempt to load non-existent data
         {
-            this.Content = new GrassTileData(new Texture2D(512, 512)); // DONT HARDCODE THIS!!!
-            this.IsLoaded = true;
-            this.IsLoading = false;
-            await this.SaveContent(folderPath);
+            if (File.Exists(filePath))
+                this.IsSaved = true;
+            else
+            {
+                this.IsLoading = false;
+                return;
+            }
+            //this.Content = new GrassTileData(new Texture2D(512, 512)); // DONT HARDCODE THIS!!!
+            //this.IsLoaded = true;
+            //this.IsLoading = false;
+            //await this.SaveContent(folderPath);
             
-            return;
+            //return;
         }
 
         Debug.Log("Load content: " + this.FileName);
@@ -455,43 +469,6 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
     //private SemaphoreSlim saveSemaphore = new SemaphoreSlim(1, 1);
     private readonly object saveLock = new object();
 
-    // ChatGPT version 2
-    //public async override Task SaveContent(string folderPath)
-    //{
-    //    bool lockAcquired = false;
-
-    //    try
-    //    {
-    //        Monitor.TryEnter(saveLock, ref lockAcquired);
-
-    //        if (!lockAcquired)
-    //        {
-    //            Debug.Log("Already saving!");
-    //            throw new InvalidOperationException("Save operation is already in progress.");
-    //        }
-
-    //        this.IsSaving = true;
-
-    //        // Simulate a time-consuming operation (e.g., loading content)
-    //        await Task.Delay(2000);
-
-    //        Debug.Log("Content saved successfully.");
-    //        this.IsSaved = true;
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Debug.LogError("Content save error: " + ex.Message);
-    //    }
-    //    finally
-    //    {
-    //        if (lockAcquired)
-    //        {
-    //            Monitor.Exit(saveLock);
-    //        }
-
-    //        this.IsSaving = false;
-    //    }
-    //}
 
     // ChatGPT version 1
     public async override Task SaveContent(string folderPath)
@@ -637,6 +614,11 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
     {
         if(this.Content != null)
             this.quadVisual.GetComponent<Renderer>().material.SetTexture("_MainTex", this.Content.exampleTexture);
+    }
+
+    public void DeleteQuadRepresentation()
+    {
+        GameObject.Destroy(this.quadVisual);
     }
 }
 

@@ -56,13 +56,7 @@ public class Grass : MonoBehaviour
             detailMapPixelWidth,
             testObject
             );
-
-        // Test painting
-        //for (int i = 0; i < 20; i++)
-        //{
-        //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(0, terrainSize.x), 0f, UnityEngine.Random.Range(0, terrainSize.y));
-        //    this.GrassData.PaintGrass(randomPos, 20, 0);
-        //}
+        this.GrassData.CreateTreeFromFiles();
     }
 
     // Update is called once per frame

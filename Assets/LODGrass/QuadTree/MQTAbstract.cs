@@ -92,10 +92,75 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
 
     public TNode Parent { get; private set; }
 
-    public TNode NE { get; protected set; } // (x:  1, z:  1) 
-    public TNode NW { get; protected set; } 
-    public TNode SE { get; protected set; } 
-    public TNode SW { get; protected set; } // (x: -1, z: -1)
+    
+    private int _childCount;
+    public int ChildCount => _childCount;
+
+    private TNode _ne, _nw, _se, _sw;
+    public TNode NE
+    {
+        get => _ne;
+        set
+        {
+            if (_ne != null && value == null)
+                _childCount--;
+            else if (_ne == null && value != null)
+                _childCount++;
+
+            _ne = value;
+            UpdateHasChildren();
+        }
+    }
+
+    public TNode NW
+    {
+        get => _nw;
+        set
+        {
+            if (_nw != null && value == null)
+                _childCount--;
+            else if (_nw == null && value != null)
+                _childCount++;
+
+            _nw = value;
+            UpdateHasChildren();
+        }
+    }
+
+    public TNode SE
+    {
+        get => _se;
+        set
+        {
+            if (_se != null && value == null)
+                _childCount--;
+            else if (_se == null && value != null)
+                _childCount++;
+
+            _se = value;
+            UpdateHasChildren();
+        }
+    }
+
+    public TNode SW
+    {
+        get => _sw;
+        set
+        {
+            if (_sw != null && value == null)
+                _childCount--;
+            else if (_sw == null && value != null)
+                _childCount++;
+
+            _sw = value;
+            UpdateHasChildren();
+        }
+    }
+
+    private void UpdateHasChildren()
+    {
+        HasChildren = _childCount > 0;
+    }
 
     public Rect3D Bounds { get; private set; } // Replace with a generic/abstract/interface for 
 
@@ -124,8 +189,6 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     {
         this.Parent = parent;
         GenerateBoundsFromParent(parent.Bounds, relativePosition);
-
-        this.Parent.HasChildren = true; // Dit is een kut idee, maar dan vergeet je het niet...
     }
 
     public abstract void GenerateNE();
