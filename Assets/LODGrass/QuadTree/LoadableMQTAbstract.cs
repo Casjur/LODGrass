@@ -16,12 +16,14 @@ public abstract class LoadableMQTAbstract<TContent, TLoadableNode>
     public List<TLoadableNode> nodesToLoad = new List<TLoadableNode>();
     public List<TLoadableNode> nodesToUnload = new List<TLoadableNode>();
 
-    public LoadableMQTAbstract(string folderPath)
+    public LoadableMQTAbstract(string folderPath, int maxDepth = int.MaxValue) 
+        : base(maxDepth)
     {
         this.FolderPath = folderPath;
     }
 
-    public LoadableMQTAbstract(string folderPath, Rect3D bounds) : base(bounds)
+    public LoadableMQTAbstract(string folderPath, Rect3D bounds, int maxDepth = int.MaxValue) 
+        : base(bounds, maxDepth)
     {
         this.FolderPath = folderPath;
     }
@@ -99,9 +101,11 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
 
     protected void GenerateIndex(UInt32 parentIndex, int layer, QuadNodePosition relativePosition)
     {
-        //UInt32.MaxValue
-        this.Index = parentIndex << (layer * 2) | (uint)relativePosition;
-        //this.Index = (layer << 2) | (uint)relativePosition; //((uint)relativePosition << (layer * 2)) | parentIndex;
+        // this method skips a lot of numbers, thus lowering the ammount of possible nodes
+        this.Index = parentIndex << (layer * 2) | (uint)relativePosition;         
+        
+        //ID = ((ParentID + 1) << 16) | ((uint)Layer << 8) | (uint)Position;
+
     }
 
     public string GetFileName()
@@ -111,8 +115,10 @@ public abstract class LoadableMQTNodeAbstract<TContent, TLoadableNode>
 
     public static string ConvertIndexToString(UInt32 index)
     {
-        byte[] bytes = BitConverter.GetBytes(index);
-        return Convert.ToBase64String(bytes);
+        //byte[] bytes = BitConverter.GetBytes(index);
+        //return Convert.ToBase64String(bytes);
+
+        return index.ToString();
     }
 
     public void CreateTreeFromFiles(string folderPath, int maxDepth)

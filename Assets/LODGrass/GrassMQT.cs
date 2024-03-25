@@ -52,8 +52,8 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
     /// </summary>
     /// <param name="folderPath"></param>
     /// <param name="bounds"></param>
-    public LoadableGrassMQT(string folderPath, Rect3D bounds, GameObject testObject) 
-        : base(folderPath, bounds)
+    public LoadableGrassMQT(string folderPath, Rect3D bounds, GameObject testObject, int maxDepth = 5) 
+        : base(folderPath, bounds, maxDepth)
     {
         this.testObject = testObject;
     }
@@ -182,14 +182,14 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
                 return;
             }
 
-            if(!node.IsLoaded) // might be unnecessary since also being checked l
+            if(!node.IsLoaded && !node.IsLoading) // might be unnecessary since also being checked l
                 this.nodesToLoad.Add(node);
             return;
         }
 
         if (nodesToLoad.Count == 0 && node.Parent == null)
         {
-            if (!node.IsLoaded) // might be unnecessary since also being checked l
+            if (!node.IsLoaded && !node.IsLoading) // might be unnecessary since also being checked l
                 this.nodesToLoad.Add(node);
             return;
         }
@@ -201,7 +201,7 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         {
             // GAAT NIET GOED HIER MET UITLADEN VAN NODES
 
-            if (!node.Parent.IsLoaded) // might be unnecessary since also being checked l
+            if (!node.Parent.IsLoaded && !node.IsLoading) // might be unnecessary since also being checked l
             {
                 if (!this.nodesToLoad.Contains(node.Parent))
                     this.nodesToLoad.Add(node.Parent);
@@ -214,8 +214,10 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
         }
 
         // Node is fine as it is
-        if (!node.IsLoaded) // might be unnecessary since also being checked l
+        // !why add to nodesToLoad if already fine?!
+        if (!node.IsLoaded && !node.IsLoading) // might be unnecessary since also being checked l
             this.nodesToLoad.Add(node);
+
         return;
     }
 
@@ -602,6 +604,7 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
     private void CreateQuadRepresentation() // Debug method
     {
         this.quadVisual = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        this.quadVisual.name = this.FileName;
         this.quadVisual.transform.position = this.Bounds.GetCenterPosition() + Vector3.up * (this.Layer + 1);
         this.quadVisual.transform.rotation = Quaternion.Euler(new Vector3(90, 0, 0));
         this.quadVisual.transform.localScale = Vector3.one * this.Bounds.GetSize();

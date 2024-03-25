@@ -6,8 +6,24 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-// Potential optimizations:
-// 1. In renderer, load nodes async all at once, not one at a time
+// Potential optimizations / problems:
+// 1. Load nodes async all at once, not one at a time
+// 2. Use a more common struct or class for the bounds of nodes.
+//    The current Rect3D is goofy as hell and not every application
+//    with this class will be 3D.
+//    . Bounds
+//    . Rect
+// 3. Change how the initial QuadTree is generated. 
+//    It would be more intuitive to just say what the grass density should be
+// 4. If the user decides to change the grass density, it can only be 4x higher or lower
+// 5. Changing terrain size is currently not possible
+// 6. Create better a better paint brush
+// 7. Optimize grass painting
+// 8. Texture2D is overkill for how much data actually has to be given
+//    to the compute shader. (grass type (byte), height (float))
+
+// IF IT CRASHES AND BURNS, CHECK GenerateBoundsFromParent in MQTAbstract.
+// I am casting Vector3Int to a Vector3
 
 public class Grass : MonoBehaviour
 {
@@ -17,7 +33,7 @@ public class Grass : MonoBehaviour
     public Transform brushTransform;
 
     // Controls
-    public const bool _enableEditing = true;
+    public const bool enableEditing = true;
     public bool doUpdateWithCamera = false;
 
     // Generation input variables
@@ -41,8 +57,6 @@ public class Grass : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        this.GrassRenderer = new GrassRenderer();
-
         string wrongFullFolderPath = Path.Combine(Application.dataPath, folderPath);
         string fullFolderPath = wrongFullFolderPath.Replace("\\", "/");
 
@@ -57,6 +71,8 @@ public class Grass : MonoBehaviour
             testObject
             );
         this.GrassData.CreateTreeFromFiles();
+
+        //this.GrassRenderer = new GrassRenderer(this.GrassData);
     }
 
     // Update is called once per frame
@@ -65,11 +81,12 @@ public class Grass : MonoBehaviour
         //this.GrassRenderer.ProcessAndRender(this, camera, this.GrassData);
 
         // Test grass painting with an objects position
-        if (_enableEditing)
+        if (enableEditing)
             this.GrassData.PaintGrass(brushTransform.position, (int)brushTransform.localScale.x, 0);
 
         this.GrassData.doUpdateWithCamera = this.doUpdateWithCamera;
         this.GrassData.UpdateLoaded(camera.transform.position);
+        
         DrawLoadedTiles(this.GrassData.GetLoadedNodes());
     }
 

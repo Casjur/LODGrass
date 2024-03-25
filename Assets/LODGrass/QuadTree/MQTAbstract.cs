@@ -21,15 +21,18 @@ public abstract class MinimalQuadTreeAbstract<TContent, TNode>
 {
     public TNode Root { get; protected set; }
 
-    public int MaxDepth { get; protected set; }
+    public int MaxDepth { get; protected set; } = int.MaxValue;
 
     // Misschien huidige depth toevoegen
 
-    public MinimalQuadTreeAbstract()
-    { }
-
-    public MinimalQuadTreeAbstract(Rect3D bounds)
+    public MinimalQuadTreeAbstract(int maxDepth = int.MaxValue)
     {
+        this.MaxDepth = maxDepth;
+    }
+
+    public MinimalQuadTreeAbstract(Rect3D bounds, int maxDepth = int.MaxValue)
+    {
+        this.MaxDepth = maxDepth;
         this.Root = GenerateRoot(bounds);
     }
 
@@ -97,7 +100,7 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     public int ChildCount => _childCount;
 
     private TNode _ne, _nw, _se, _sw;
-    public TNode NE
+    public TNode NE // Might be better to use setter functions, to indicate side-effects
     {
         get => _ne;
         set
@@ -167,17 +170,17 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     public bool HasChildren { get; protected set; }
 
     //This should not be here
-    public static readonly Vector3 North = new Vector3(0, 0, 1);
-    public static readonly Vector3 South = new Vector3(0, 0, -1);
-    public static readonly Vector3 East = new Vector3(1, 0, 0);
-    public static readonly Vector3 West = new Vector3(-1, 0, 0);
+    public static readonly Vector3Int North = new Vector3Int(0, 0, 1);
+    public static readonly Vector3Int South = new Vector3Int(0, 0, -1);
+    public static readonly Vector3Int East = new Vector3Int(1, 0, 0);
+    public static readonly Vector3Int West = new Vector3Int(-1, 0, 0);
 
-    // Position relative to the TopLeft origin point of the parent tile
-    public static readonly Vector3[] RelativePositions = {
+    // Position relative to the BottomLeft origin point of the parent tile
+    public static readonly Vector3Int[] RelativePositions = {
         North + East, // NE (0)
         North,        // NW (1)
         East,         // SE (2)
-        Vector3.zero  // SW (3)
+        Vector3Int.zero  // SW (3)
     };
 
     public MinimalQuadTreeNodeAbstract(Rect3D bounds)
@@ -200,7 +203,7 @@ public abstract class MinimalQuadTreeNodeAbstract<TContent, TNode>
     private void GenerateBoundsFromParent(Rect3D parentBounds, QuadNodePosition relativePosition)
     {
         float size = parentBounds.GetSize() / 2f;
-        Vector3 realRelativePosition = RelativePositions[(int)relativePosition] * size;
+        Vector3 realRelativePosition = (Vector3)RelativePositions[(int)relativePosition] * size;
         Vector3 position = parentBounds.GetPosition() + realRelativePosition;
         
         this.Bounds = new Rect3D(position, size);

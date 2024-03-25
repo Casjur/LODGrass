@@ -3,11 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Rect3D
+// Possible optimizations and current problems
+// 1. Might be better to just use Bounds struct, since its
+//    practically the same, and also used for Graphics.DrawMeshInstancedIndirect
+
+public class Rect3D 
 {
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
-
+    
     //public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
     //{ 
     //    Vector3 relativePosition = RelativePositions[(int)positionIndex] * size;
