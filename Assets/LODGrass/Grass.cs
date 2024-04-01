@@ -21,6 +21,7 @@ using UnityEngine.Networking;
 // 7. Optimize grass painting
 // 8. Texture2D is overkill for how much data actually has to be given
 //    to the compute shader. (grass type (byte), height (float))
+// 9. Try to implement the "Double-buffer strategy" from the GoTs GDC talk
 
 // IF IT CRASHES AND BURNS, CHECK GenerateBoundsFromParent in MQTAbstract.
 // I am casting Vector3Int to a Vector3

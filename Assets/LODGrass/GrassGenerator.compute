@@ -6,9 +6,22 @@
 RWTexture2D<float4> Result;
 
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+[numthreads(32,32,1)] //32, 32 is most likely to be optimal
+void CSMain (uint3 id : SV_DispatchThreadID) // SV_DispatchThreadID considers the ID in the context of all workgroups
 {
+    // Turn lane ID into position on tile grid, jitter
+    
+    
+    // Distance culling and frustum culling
+    
+    // Determine grass type and height from texture at position
+    
+    // Drop lanes that dont have grass
+    
+    // Occlusion culling
+    
+    
+    
     // TODO: insert actual code here!
 
     Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);

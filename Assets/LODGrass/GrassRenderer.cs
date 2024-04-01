@@ -5,6 +5,14 @@ using UnityEngine;
 
 public class GrassRenderer
 {
+    ComputeShader _grassShaderOriginal;
+    Mesh grassMesh1;
+    Material grassMaterial1;
+    Mesh grassMesh2;
+    Material grassMaterial2;
+    Mesh grassMesh3;
+    Material grassMaterial3;
+
     // VERGEET NIET DE ROOT AAN DE TILES TO LOAD TOE TE VOEGEN
 
     //private List<LoadableGrassMQTNode> nodesToLoad = new List<LoadableGrassMQTNode>();
@@ -26,11 +34,24 @@ public class GrassRenderer
 
         foreach (KeyValuePair<LoadableGrassMQTNode, RenderTileTree> nodeTreePair in renderTileTrees)
         {
-            //nodeTreePair.
+            // Frustum culling
+
+            // Occlusion culling?
+
+            // Render remaining tiles
+            Render();
         }
 
-        //if (nodesToLoad.Count == 0)
-        //    this.nodesToLoad.Add(tree.Root);
+        // Calculate how many RenderTiles are in the LoadedTile and how many should be drawn
+        
+
+        
+
+
+
+
+        if (nodesToLoad.Count == 0)
+            this.nodesToLoad.Add(tree.Root);
 
 
         // Subdivide loadable tiles based on camera distance
@@ -84,6 +105,22 @@ public class GrassRenderer
         }
     }
 
+    void Render(List<RenderReferenceTile>)
+    {
+
+        ComputeBuffer dispatchIndirectBuffer = new ComputeBuffer();
+
+        ComputeShader grassGenerator = ComputeShader.Instantiate(_grassShaderOriginal);
+
+        grassGenerator.DispatchIndirect();
+
+        RenderParams rp = new RenderParams(material);
+        rp.worldBounds = ; //tile bounds
+        Mesh mesh;
+        GraphicsBuffer cmdBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 0);
+
+        Graphics.RenderMeshIndirect(in rp, grassMesh1, cmdBuffer, ...);
+    }
     
 
     //private void GenerateRenderTiles(List<LoadableGrassMQTNode> loadedTiles)
