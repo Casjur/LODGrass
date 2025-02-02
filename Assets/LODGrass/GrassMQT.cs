@@ -43,8 +43,6 @@ public class LoadableGrassMQT : LoadableMQTAbstract<GrassTileData, LoadableGrass
 
         this.Root = this.GenerateRoot(new Rect3D(position, w_rootSize));
         Debug.Log("Root created. Position: " + position + "; w_rootSize: " + w_rootSize + ";");
-
-        
     }
 
     /// <summary>
@@ -519,79 +517,6 @@ public class LoadableGrassMQTNode : LoadableMQTNodeAbstract<GrassTileData, Loada
             this.IsSaving = false;
         }
     }
-
-    //public async override Task SaveContent(string folderPath)
-    //{
-    //    // This could make it faster, since it most of method calls wont reach the lock
-    //    //if (this.IsSaving)
-    //    //    return;
-
-    //    lock (saveLock)
-    //    {
-    //        if (this.IsSaving)
-    //        {
-    //            Debug.Log("Already saving!");
-    //            throw new InvalidOperationException("Save operation is already in progress.");
-    //            return;
-    //        }
-
-    //        this.IsSaving = true;
-    //    }
-
-    //    try
-    //    {
-    //        byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
-
-    //        string saveFilePath = Path.Combine(folderPath, this.FileName);
-
-    //        using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
-    //        {
-    //            await fileStream.WriteAsync(textureData, 0, textureData.Length);
-    //            fileStream.Close();
-    //        }
-
-    //        Debug.Log("Content saved successfully.");
-
-    //        this.IsSaved = true;
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Debug.LogError("Content save error: " + ex.Message);
-    //    }
-    //    finally
-    //    {
-    //        lock(saveLock) // Lock might not be necesarry here, since there shouldnt be any race conditions
-    //        {
-    //            this.IsSaving = false;
-    //        }
-    //    }
-    //}
-
-    //public async override Task SaveContent(string folderPath)
-    //{
-    //    //if (!this.IsSaving)
-    //    //    this.IsSaving = true;
-    //    //else
-    //    //    return;
-
-
-    //    //// Get the raw texture data
-    //    //byte[] textureData = this.Content.exampleTexture.GetRawTextureData();
-
-    //    //// Save the raw texture data to a file
-    //    //string saveFilePath = Path.Combine(folderPath, this.FileName);
-
-    //    //using (FileStream fileStream = new FileStream(saveFilePath, FileMode.Create))
-    //    //{
-    //    //    await fileStream.WriteAsync(textureData, 0, textureData.Length);
-    //    //}
-
-    //    //this.IsSaved = true;
-    //    //this.IsSaving = false;
-
-
-
-    //}
 
     public override Task UnloadContent()
     {

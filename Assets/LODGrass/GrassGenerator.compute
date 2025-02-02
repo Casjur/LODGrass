@@ -1,3 +1,9 @@
+// TODO:
+// 1. add random jitter to the position
+
+
+
+
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 

@@ -15,9 +15,9 @@ using UnityEngine.Networking;
 //    . Rect
 // 3. Change how the initial QuadTree is generated. 
 //    It would be more intuitive to just say what the grass density should be
-// 4. If the user decides to change the grass density, it can only be 4x higher or lower
+// 4. Problem: If the user decides to change the grass density, it can only be 4x higher or lower
 // 5. Changing terrain size is currently not possible
-// 6. Create better a better paint brush
+// 6. Create a better paint brush
 // 7. Optimize grass painting
 // 8. Texture2D is overkill for how much data actually has to be given
 //    to the compute shader. (grass type (byte), height (float))
@@ -32,7 +32,7 @@ public class Grass : MonoBehaviour
     public static Material testMat;
     public GameObject testObject;
     public Transform brushTransform;
-
+    
     // Controls
     public const bool enableEditing = true;
     public bool doUpdateWithCamera = false;
@@ -40,7 +40,7 @@ public class Grass : MonoBehaviour
     // Generation input variables
     [SerializeField] string folderPath;// = "/GrassData";
     [SerializeField] Terrain terrain; 
-    [SerializeField] float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39 texel)
+    [SerializeField] float detailMapDensity = 6.5f; // Ghost of Tsushima waarde (ongv: 200m tile oftewel 0.39m texel)
     [SerializeField] int detailMapPixelWidth = 512; // Ghost of Tsushima waarde
     [SerializeField] double maxStoredPixels = 357826560;
     [SerializeField] float grassDensity = 8;

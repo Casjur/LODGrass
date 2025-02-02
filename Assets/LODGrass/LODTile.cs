@@ -11,6 +11,11 @@ public class Rect3D
 {
     // Position and scale (always convert Tile's y to world z)
     public Rect Tile { get; private set; }
+
+    public Vector3 NE => new Vector3(Tile.xMax, 0, Tile.yMax);
+    public Vector3 NW => new Vector3(Tile.xMin, 0, Tile.yMax);
+    public Vector3 SE => new Vector3(Tile.xMax, 0, Tile.yMin);
+    public Vector3 SW => new Vector3(Tile.xMin, 0, Tile.yMin);
     
     //public Rect3D(Vector3 parentPosition, QuadNodePosition positionIndex, float size) // Naming of positionIndex is vague
     //{ 

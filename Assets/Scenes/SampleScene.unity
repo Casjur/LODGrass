@@ -628,7 +628,7 @@ MonoBehaviour:
   doUpdateWithCamera: 1
   folderPath: GrassData
   terrain: {fileID: 1090452290}
-  detailMapDensity: 4
+  detailMapDensity: 6.5536
   detailMapPixelWidth: 512
   maxStoredPixels: 357826560
   grassDensity: 8

@@ -111,38 +111,38 @@ public class RenderTileNode : MinimalQuadTreeNodeAbstract<RenderReferenceTile, R
         if (this.Content.resolution > 1)
             this.NE = new RenderTileNode(this.Parent, QuadNodePosition.NE);
         else
-            throw new System.Exception("Blud is trynna create a texture 1x1 or sum");
+            throw new System.Exception("Blud is trynna create a texture 1x1 or sumting");
     }
 
     public override void GenerateNW()
     {
-
         if (this.Content.resolution > 1)
             this.NW = new RenderTileNode(this.Parent, QuadNodePosition.NW);
         else
-            throw new System.Exception("Blud is trynna create a texture 1x1 or sum");
+            throw new System.Exception("Blud is trynna create a texture 1x1 or sumting");
     }
 
     public override void GenerateSE()
     {
-
         if (this.Content.resolution > 1)
             this.SE = new RenderTileNode(this.Parent, QuadNodePosition.SE);
         else
-            throw new System.Exception("Blud is trynna create a texture 1x1 or sum");
+            throw new System.Exception("Blud is trynna create a texture 1x1 or sumting");
     }
 
     public override void GenerateSW()
     {
-
         if (this.Content.resolution > 1)
             this.SW = new RenderTileNode(this.Parent, QuadNodePosition.SW);
         else
-            throw new System.Exception("Blud is trynna create a texture 1x1 or sum");
+            throw new System.Exception("Blud is trynna create a texture 1x1 or sumting");
     }
 }
 
 // Litteraly the same as RectInt, but with less. (might take up less memory?)
+/// <summary>
+/// Specifies where the shader should read from the target image.
+/// </summary>
 public struct RenderReferenceTile 
 {
     public int x;
